@@ -32,6 +32,8 @@ namespace osu.Game.Overlays.Chat.Selection
         private readonly SearchTextBox search;
         private readonly SearchContainer<ChannelSection> sectionsFlow;
 
+        protected override bool DimMainContent => false;
+
         public Action<Channel> OnRequestJoin;
         public Action<Channel> OnRequestLeave;
 
@@ -117,7 +119,6 @@ namespace osu.Game.Overlays.Chat.Selection
                                 {
                                     RelativeSizeAxes = Axes.X,
                                     PlaceholderText = @"Search",
-                                    Exit = Hide,
                                 },
                             },
                         },
@@ -190,8 +191,12 @@ namespace osu.Game.Overlays.Chat.Selection
 
         private class HeaderSearchTextBox : SearchTextBox
         {
-            protected override Color4 BackgroundFocused => Color4.Black.Opacity(0.2f);
-            protected override Color4 BackgroundUnfocused => Color4.Black.Opacity(0.2f);
+            [BackgroundDependencyLoader]
+            private void load()
+            {
+                BackgroundFocused = Color4.Black.Opacity(0.2f);
+                BackgroundUnfocused = Color4.Black.Opacity(0.2f);
+            }
         }
     }
 }

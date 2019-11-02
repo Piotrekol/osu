@@ -6,83 +6,85 @@ using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Game.Configuration;
-using osuTK.Graphics;
 
 namespace osu.Game.Graphics.Containers
 {
     /// <summary>
-    /// A container that applies user-configured dim levels to its contents.
-    /// This container specifies behavior that applies to both Storyboards and Backgrounds.
+    /// A container that applies user-configured visual settings to its contents.
     /// </summary>
-    public class UserDimContainer : Container
+    public abstract class UserDimContainer : Container
     {
-        private const float background_fade_duration = 800;
-
-        private Bindable<double> dimLevel { get; set; }
-
-        private Bindable<bool> showStoryboard { get; set; }
+        protected const float BACKGROUND_FADE_DURATION = 800;
 
         /// <summary>
         /// Whether or not user-configured dim levels should be applied to the container.
         /// </summary>
-        public readonly Bindable<bool> EnableUserDim = new Bindable<bool>();
+        public readonly Bindable<bool> EnableUserDim = new Bindable<bool>(true);
 
         /// <summary>
         /// Whether or not the storyboard loaded should completely hide the background behind it.
         /// </summary>
         public readonly Bindable<bool> StoryboardReplacesBackground = new Bindable<bool>();
 
-        protected Container DimContainer { get; }
+        /// <summary>
+        /// Whether the content of this container is currently being displayed.
+        /// </summary>
+        public bool ContentDisplayed { get; private set; }
 
-        protected override Container<Drawable> Content => DimContainer;
+        protected Bindable<double> UserDimLevel { get; private set; }
 
-        private readonly bool isStoryboard;
+        protected Bindable<bool> ShowStoryboard { get; private set; }
+
+        protected Bindable<bool> ShowVideo { get; private set; }
+
+        protected double DimLevel => EnableUserDim.Value ? UserDimLevel.Value : 0;
+
+        protected override Container<Drawable> Content => dimContent;
+
+        private Container dimContent { get; }
 
         /// <summary>
         /// Creates a new <see cref="UserDimContainer"/>.
         /// </summary>
-        /// <param name="isStoryboard"> Whether or not this instance of UserDimContainer contains a storyboard.
-        /// <remarks>
-        /// While both backgrounds and storyboards allow user dim levels to be applied, storyboards can be toggled via <see cref="showStoryboard"/>
-        /// and can cause backgrounds to become hidden via <see cref="StoryboardReplacesBackground"/>.
-        /// </remarks>
-        /// </param>
-        public UserDimContainer(bool isStoryboard = false)
+        protected UserDimContainer()
         {
-            this.isStoryboard = isStoryboard;
-            AddInternal(DimContainer = new Container { RelativeSizeAxes = Axes.Both });
+            AddInternal(dimContent = new Container { RelativeSizeAxes = Axes.Both });
         }
 
         [BackgroundDependencyLoader]
         private void load(OsuConfigManager config)
         {
-            dimLevel = config.GetBindable<double>(OsuSetting.DimLevel);
-            showStoryboard = config.GetBindable<bool>(OsuSetting.ShowStoryboard);
-            EnableUserDim.ValueChanged += _ => updateBackgroundDim();
-            dimLevel.ValueChanged += _ => updateBackgroundDim();
-            showStoryboard.ValueChanged += _ => updateBackgroundDim();
-            StoryboardReplacesBackground.ValueChanged += _ => updateBackgroundDim();
+            UserDimLevel = config.GetBindable<double>(OsuSetting.DimLevel);
+            ShowStoryboard = config.GetBindable<bool>(OsuSetting.ShowStoryboard);
+            ShowVideo = config.GetBindable<bool>(OsuSetting.ShowVideoBackground);
+
+            EnableUserDim.ValueChanged += _ => UpdateVisuals();
+            UserDimLevel.ValueChanged += _ => UpdateVisuals();
+            ShowStoryboard.ValueChanged += _ => UpdateVisuals();
+            ShowVideo.ValueChanged += _ => UpdateVisuals();
+            StoryboardReplacesBackground.ValueChanged += _ => UpdateVisuals();
         }
 
         protected override void LoadComplete()
         {
             base.LoadComplete();
-            updateBackgroundDim();
+            UpdateVisuals();
         }
 
-        private void updateBackgroundDim()
-        {
-            if (isStoryboard)
-            {
-                DimContainer.FadeTo(!showStoryboard.Value || dimLevel.Value == 1 ? 0 : 1, background_fade_duration, Easing.OutQuint);
-            }
-            else
-            {
-                // The background needs to be hidden in the case of it being replaced by the storyboard
-                DimContainer.FadeTo(showStoryboard.Value && StoryboardReplacesBackground.Value ? 0 : 1, background_fade_duration, Easing.OutQuint);
-            }
+        /// <summary>
+        /// Whether the content of this container should currently be visible.
+        /// </summary>
+        protected virtual bool ShowDimContent => true;
 
-            DimContainer.FadeColour(EnableUserDim.Value ? OsuColour.Gray(1 - (float)dimLevel.Value) : Color4.White, background_fade_duration, Easing.OutQuint);
+        /// <summary>
+        /// Should be invoked when any dependent dim level or user setting is changed and bring the visual state up-to-date.
+        /// </summary>
+        protected virtual void UpdateVisuals()
+        {
+            ContentDisplayed = ShowDimContent;
+
+            dimContent.FadeTo(ContentDisplayed ? 1 : 0, BACKGROUND_FADE_DURATION, Easing.OutQuint);
+            dimContent.FadeColour(OsuColour.Gray(1 - (float)DimLevel), BACKGROUND_FADE_DURATION, Easing.OutQuint);
         }
     }
 }

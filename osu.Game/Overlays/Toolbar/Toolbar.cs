@@ -12,19 +12,19 @@ using osu.Framework.Graphics.Shapes;
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
 using osu.Framework.Input.Events;
+using osu.Game.Rulesets;
 
 namespace osu.Game.Overlays.Toolbar
 {
-    public class Toolbar : OverlayContainer
+    public class Toolbar : VisibilityContainer
     {
         public const float HEIGHT = 40;
         public const float TOOLTIP_HEIGHT = 30;
 
         public Action OnHome;
 
-        private ToolbarUserArea userArea;
-
-        protected override bool BlockPositionalInput => false;
+        private ToolbarUserButton userButton;
+        private ToolbarRulesetSelector rulesetSelector;
 
         private const double transition_time = 500;
 
@@ -40,7 +40,7 @@ namespace osu.Game.Overlays.Toolbar
         }
 
         [BackgroundDependencyLoader(true)]
-        private void load(OsuGame osuGame)
+        private void load(OsuGame osuGame, Bindable<RulesetInfo> parentRuleset)
         {
             Children = new Drawable[]
             {
@@ -57,7 +57,7 @@ namespace osu.Game.Overlays.Toolbar
                         {
                             Action = () => OnHome?.Invoke()
                         },
-                        new ToolbarRulesetSelector()
+                        rulesetSelector = new ToolbarRulesetSelector()
                     }
                 },
                 new FillFlowContainer
@@ -69,24 +69,28 @@ namespace osu.Game.Overlays.Toolbar
                     AutoSizeAxes = Axes.X,
                     Children = new Drawable[]
                     {
+                        new ToolbarChangelogButton(),
                         new ToolbarDirectButton(),
                         new ToolbarChatButton(),
                         new ToolbarSocialButton(),
                         new ToolbarMusicButton(),
                         //new ToolbarButton
                         //{
-                        //    Icon = FontAwesome.fa_search
+                        //    Icon = FontAwesome.Solid.search
                         //},
-                        userArea = new ToolbarUserArea(),
+                        userButton = new ToolbarUserButton(),
                         new ToolbarNotificationButton(),
                     }
                 }
             };
 
-            StateChanged += visibility =>
+            // Bound after the selector is added to the hierarchy to give it a chance to load the available rulesets
+            rulesetSelector.Current.BindTo(parentRuleset);
+
+            State.ValueChanged += visibility =>
             {
                 if (overlayActivationMode.Value == OverlayActivation.Disabled)
-                    State = Visibility.Hidden;
+                    Hide();
             };
 
             if (osuGame != null)
@@ -143,7 +147,7 @@ namespace osu.Game.Overlays.Toolbar
 
         protected override void PopOut()
         {
-            userArea?.LoginOverlay.Hide();
+            userButton?.StateContainer.Hide();
 
             this.MoveToY(-DrawSize.Y, transition_time, Easing.OutQuint);
             this.FadeOut(transition_time);

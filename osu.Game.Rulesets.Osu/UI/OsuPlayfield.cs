@@ -10,9 +10,9 @@ using osu.Game.Rulesets.Osu.Objects.Drawables;
 using osu.Game.Rulesets.Osu.Objects.Drawables.Connections;
 using osu.Game.Rulesets.UI;
 using System.Linq;
-using osu.Framework.Graphics.Cursor;
 using osu.Game.Rulesets.Judgements;
 using osu.Game.Rulesets.Osu.UI.Cursor;
+using osu.Game.Skinning;
 
 namespace osu.Game.Rulesets.Osu.UI
 {
@@ -24,66 +24,46 @@ namespace osu.Game.Rulesets.Osu.UI
 
         public static readonly Vector2 BASE_SIZE = new Vector2(512, 384);
 
-        private readonly PlayfieldAdjustmentContainer adjustmentContainer;
-
-        protected override Container CursorTargetContainer => adjustmentContainer;
-
-        protected override CursorContainer CreateCursor() => new GameplayCursorContainer();
+        protected override GameplayCursorContainer CreateCursor() => new OsuCursorContainer();
 
         public OsuPlayfield()
         {
-            Anchor = Anchor.Centre;
-            Origin = Anchor.Centre;
-
-            Size = new Vector2(0.75f);
-
-            InternalChild = adjustmentContainer = new PlayfieldAdjustmentContainer
+            InternalChildren = new Drawable[]
             {
-                RelativeSizeAxes = Axes.Both,
-                Children = new Drawable[]
+                connectionLayer = new FollowPointRenderer
                 {
-                    connectionLayer = new FollowPointRenderer
-                    {
-                        RelativeSizeAxes = Axes.Both,
-                        Depth = 2,
-                    },
-                    judgementLayer = new JudgementContainer<DrawableOsuJudgement>
-                    {
-                        RelativeSizeAxes = Axes.Both,
-                        Depth = 1,
-                    },
-                    HitObjectContainer,
-                    approachCircles = new ApproachCircleProxyContainer
-                    {
-                        RelativeSizeAxes = Axes.Both,
-                        Depth = -1,
-                    },
-                }
+                    RelativeSizeAxes = Axes.Both,
+                    Depth = 2,
+                },
+                judgementLayer = new JudgementContainer<DrawableOsuJudgement>
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    Depth = 1,
+                },
+                // Todo: This should not exist, but currently helps to reduce LOH allocations due to unbinding skin source events on judgement disposal
+                // Todo: Remove when hitobjects are properly pooled
+                new SkinProvidingContainer(null)
+                {
+                    Child = HitObjectContainer,
+                },
+                approachCircles = new ApproachCircleProxyContainer
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    Depth = -1,
+                },
             };
         }
 
         public override void Add(DrawableHitObject h)
         {
             h.OnNewResult += onNewResult;
-
-            if (h is IDrawableHitObjectWithProxiedApproach c)
+            h.OnLoadComplete += d =>
             {
-                var original = c.ProxiedLayer;
-
-                // Hitobjects only have lifetimes set on LoadComplete. For nested hitobjects (e.g. SliderHeads), this only happens when the parenting slider becomes visible.
-                // This delegation is required to make sure that the approach circles for those not-yet-loaded objects aren't added prematurely.
-                original.OnLoadComplete += addApproachCircleProxy;
-            }
+                if (d is IDrawableHitObjectWithProxiedApproach c)
+                    approachCircles.Add(c.ProxiedLayer.CreateProxy());
+            };
 
             base.Add(h);
-        }
-
-        private void addApproachCircleProxy(Drawable d)
-        {
-            var proxy = d.CreateProxy();
-            proxy.LifetimeStart = d.LifetimeStart;
-            proxy.LifetimeEnd = d.LifetimeEnd;
-            approachCircles.Add(proxy);
         }
 
         public override void PostProcess()
@@ -100,7 +80,7 @@ namespace osu.Game.Rulesets.Osu.UI
             {
                 Origin = Anchor.Centre,
                 Position = ((OsuHitObject)judgedObject.HitObject).StackedEndPosition,
-                Scale = new Vector2(((OsuHitObject)judgedObject.HitObject).Scale * 1.65f)
+                Scale = new Vector2(((OsuHitObject)judgedObject.HitObject).Scale)
             };
 
             judgementLayer.Add(explosion);

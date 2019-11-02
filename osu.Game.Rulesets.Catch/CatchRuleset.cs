@@ -9,22 +9,25 @@ using osu.Game.Rulesets.Mods;
 using osu.Game.Rulesets.UI;
 using System.Collections.Generic;
 using osu.Framework.Graphics;
+using osu.Framework.Graphics.Sprites;
 using osu.Framework.Input.Bindings;
-using osu.Game.Rulesets.Catch.Objects;
 using osu.Game.Rulesets.Catch.Replays;
 using osu.Game.Rulesets.Replays.Types;
 using osu.Game.Beatmaps.Legacy;
 using osu.Game.Rulesets.Catch.Beatmaps;
 using osu.Game.Rulesets.Catch.Difficulty;
 using osu.Game.Rulesets.Difficulty;
+using osu.Game.Scoring;
 
 namespace osu.Game.Rulesets.Catch
 {
     public class CatchRuleset : Ruleset
     {
-        public override RulesetContainer CreateRulesetContainerWith(WorkingBeatmap beatmap) => new CatchRulesetContainer(this, beatmap);
+        public override DrawableRuleset CreateDrawableRulesetWith(IWorkingBeatmap beatmap, IReadOnlyList<Mod> mods) => new DrawableCatchRuleset(this, beatmap, mods);
         public override IBeatmapConverter CreateBeatmapConverter(IBeatmap beatmap) => new CatchBeatmapConverter(beatmap);
         public override IBeatmapProcessor CreateBeatmapProcessor(IBeatmap beatmap) => new CatchBeatmapProcessor(beatmap);
+
+        public const string SHORT_NAME = "fruits";
 
         public override IEnumerable<KeyBinding> GetDefaultKeyBindings(int variant = 0) => new[]
         {
@@ -42,6 +45,11 @@ namespace osu.Game.Rulesets.Catch
                 yield return new CatchModNightcore();
             else if (mods.HasFlag(LegacyMods.DoubleTime))
                 yield return new CatchModDoubleTime();
+
+            if (mods.HasFlag(LegacyMods.Perfect))
+                yield return new CatchModPerfect();
+            else if (mods.HasFlag(LegacyMods.SuddenDeath))
+                yield return new CatchModSuddenDeath();
 
             if (mods.HasFlag(LegacyMods.Autoplay))
                 yield return new CatchModAutoplay();
@@ -64,14 +72,8 @@ namespace osu.Game.Rulesets.Catch
             if (mods.HasFlag(LegacyMods.NoFail))
                 yield return new CatchModNoFail();
 
-            if (mods.HasFlag(LegacyMods.Perfect))
-                yield return new CatchModPerfect();
-
             if (mods.HasFlag(LegacyMods.Relax))
                 yield return new CatchModRelax();
-
-            if (mods.HasFlag(LegacyMods.SuddenDeath))
-                yield return new CatchModSuddenDeath();
         }
 
         public override IEnumerable<Mod> GetModsFor(ModType type)
@@ -85,6 +87,7 @@ namespace osu.Game.Rulesets.Catch
                         new CatchModNoFail(),
                         new MultiMod(new CatchModHalfTime(), new CatchModDaycore())
                     };
+
                 case ModType.DifficultyIncrease:
                     return new Mod[]
                     {
@@ -94,17 +97,20 @@ namespace osu.Game.Rulesets.Catch
                         new CatchModHidden(),
                         new CatchModFlashlight(),
                     };
+
                 case ModType.Automation:
                     return new Mod[]
                     {
                         new MultiMod(new CatchModAutoplay(), new ModCinema()),
                         new CatchModRelax(),
                     };
+
                 case ModType.Fun:
                     return new Mod[]
                     {
-                        new MultiMod(new ModWindUp<CatchHitObject>(), new ModWindDown<CatchHitObject>())
+                        new MultiMod(new ModWindUp(), new ModWindDown())
                     };
+
                 default:
                     return new Mod[] { };
             }
@@ -112,11 +118,13 @@ namespace osu.Game.Rulesets.Catch
 
         public override string Description => "osu!catch";
 
-        public override string ShortName => "fruits";
+        public override string ShortName => SHORT_NAME;
 
-        public override Drawable CreateIcon() => new SpriteIcon { Icon = FontAwesome.fa_osu_fruits_o };
+        public override Drawable CreateIcon() => new SpriteIcon { Icon = OsuIcon.RulesetCatch };
 
         public override DifficultyCalculator CreateDifficultyCalculator(WorkingBeatmap beatmap) => new CatchDifficultyCalculator(this, beatmap);
+
+        public override PerformanceCalculator CreatePerformanceCalculator(WorkingBeatmap beatmap, ScoreInfo score) => new CatchPerformanceCalculator(this, beatmap, score);
 
         public override int? LegacyID => 2;
 

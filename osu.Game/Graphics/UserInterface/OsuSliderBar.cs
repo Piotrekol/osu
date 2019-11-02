@@ -17,7 +17,7 @@ using osu.Framework.Input.Events;
 namespace osu.Game.Graphics.UserInterface
 {
     public class OsuSliderBar<T> : SliderBar<T>, IHasTooltip, IHasAccentColour
-        where T : struct, IEquatable<T>, IComparable, IConvertible
+        where T : struct, IEquatable<T>, IComparable<T>, IConvertible
     {
         /// <summary>
         /// Maximum number of decimal digits to be displayed in the tooltip.
@@ -86,7 +86,7 @@ namespace osu.Game.Graphics.UserInterface
         [BackgroundDependencyLoader]
         private void load(AudioManager audio, OsuColour colours)
         {
-            sample = audio.Sample.Get(@"UI/sliderbar-notch");
+            sample = audio.Samples.Get(@"UI/sliderbar-notch");
             AccentColour = colours.Pink;
         }
 
@@ -203,6 +203,7 @@ namespace osu.Game.Graphics.UserInterface
         private int findPrecision(decimal d)
         {
             int precision = 0;
+
             while (d != Math.Round(d))
             {
                 d *= 10;

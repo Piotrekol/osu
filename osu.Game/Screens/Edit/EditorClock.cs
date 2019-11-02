@@ -57,7 +57,7 @@ namespace osu.Game.Screens.Edit
 
             // Depending on beatSnapLength, we may snap to a beat that is beyond timingPoint's end time, but we want to instead snap to
             // the next timing point's start time
-            var nextTimingPoint = ControlPointInfo.TimingPoints.Find(t => t.Time > timingPoint.Time);
+            var nextTimingPoint = ControlPointInfo.TimingPoints.FirstOrDefault(t => t.Time > timingPoint.Time);
             if (position > nextTimingPoint?.Time)
                 position = nextTimingPoint.Time;
 
@@ -83,13 +83,10 @@ namespace osu.Game.Screens.Edit
             if (amount <= 0) throw new ArgumentException("Value should be greater than zero", nameof(amount));
 
             var timingPoint = ControlPointInfo.TimingPointAt(CurrentTime);
+
             if (direction < 0 && timingPoint.Time == CurrentTime)
-            {
                 // When going backwards and we're at the boundary of two timing points, we compute the seek distance with the timing point which we are seeking into
-                int activeIndex = ControlPointInfo.TimingPoints.IndexOf(timingPoint);
-                while (activeIndex > 0 && CurrentTime == timingPoint.Time)
-                    timingPoint = ControlPointInfo.TimingPoints[--activeIndex];
-            }
+                timingPoint = ControlPointInfo.TimingPointAt(CurrentTime - 1);
 
             double seekAmount = timingPoint.BeatLength / beatDivisor.Value * amount;
             double seekTime = CurrentTime + seekAmount * direction;
@@ -123,7 +120,7 @@ namespace osu.Game.Screens.Edit
             if (seekTime < timingPoint.Time && timingPoint != ControlPointInfo.TimingPoints.First())
                 seekTime = timingPoint.Time;
 
-            var nextTimingPoint = ControlPointInfo.TimingPoints.Find(t => t.Time > timingPoint.Time);
+            var nextTimingPoint = ControlPointInfo.TimingPoints.FirstOrDefault(t => t.Time > timingPoint.Time);
             if (seekTime > nextTimingPoint?.Time)
                 seekTime = nextTimingPoint.Time;
 

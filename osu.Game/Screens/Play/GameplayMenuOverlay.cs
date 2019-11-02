@@ -19,6 +19,7 @@ using osu.Framework.Input.Bindings;
 using osu.Framework.Input.Events;
 using osu.Game.Input.Bindings;
 using Humanizer;
+using osu.Framework.Graphics.Effects;
 
 namespace osu.Game.Screens.Play
 {
@@ -38,9 +39,15 @@ namespace osu.Game.Screens.Play
         /// <summary>
         /// Action that is invoked when <see cref="GlobalAction.Back"/> is triggered.
         /// </summary>
-        protected virtual Action BackAction => () => InternalButtons.Children.Last().Click();
+        protected virtual Action BackAction => () => InternalButtons.Children.LastOrDefault()?.Click();
+
+        /// <summary>
+        /// Action that is invoked when <see cref="GlobalAction.Select"/> is triggered.
+        /// </summary>
+        protected virtual Action SelectAction => () => InternalButtons.Children.FirstOrDefault(f => f.Selected.Value)?.Click();
 
         public abstract string Header { get; }
+
         public abstract string Description { get; }
 
         protected internal FillFlowContainer<DialogButton> InternalButtons;
@@ -52,7 +59,7 @@ namespace osu.Game.Screens.Play
         {
             RelativeSizeAxes = Axes.Both;
 
-            StateChanged += s => selectionIndex = -1;
+            State.ValueChanged += s => selectionIndex = -1;
         }
 
         [BackgroundDependencyLoader]
@@ -215,6 +222,7 @@ namespace osu.Game.Screens.Play
                         else
                             selectionIndex--;
                         return true;
+
                     case Key.Down:
                         if (selectionIndex == -1 || selectionIndex == InternalButtons.Count - 1)
                             selectionIndex = 0;
@@ -229,16 +237,31 @@ namespace osu.Game.Screens.Play
 
         public bool OnPressed(GlobalAction action)
         {
-            if (action == GlobalAction.Back)
+            switch (action)
             {
-                BackAction.Invoke();
-                return true;
+                case GlobalAction.Back:
+                    BackAction.Invoke();
+                    return true;
+
+                case GlobalAction.Select:
+                    SelectAction.Invoke();
+                    return true;
             }
 
             return false;
         }
 
-        public bool OnReleased(GlobalAction action) => action == GlobalAction.Back;
+        public bool OnReleased(GlobalAction action)
+        {
+            switch (action)
+            {
+                case GlobalAction.Back:
+                case GlobalAction.Select:
+                    return true;
+            }
+
+            return false;
+        }
 
         private void buttonSelectionChanged(DialogButton button, bool isSelected)
         {
@@ -281,6 +304,7 @@ namespace osu.Game.Screens.Play
 
         private class Button : DialogButton
         {
+            // required to ensure keyboard navigation always starts from an extremity (unless the cursor is moved)
             protected override bool OnHover(HoverEvent e) => true;
 
             protected override bool OnMouseMove(MouseMoveEvent e)
@@ -288,15 +312,23 @@ namespace osu.Game.Screens.Play
                 Selected.Value = true;
                 return base.OnMouseMove(e);
             }
+        }
 
-            protected override bool OnKeyDown(KeyDownEvent e)
+        [Resolved]
+        private GlobalActionContainer globalAction { get; set; }
+
+        protected override bool Handle(UIEvent e)
+        {
+            switch (e)
             {
-                if (e.Repeat || e.Key != Key.Enter || !Selected.Value)
-                    return false;
+                case ScrollEvent _:
+                    if (ReceivePositionalInputAt(e.ScreenSpaceMousePosition))
+                        return globalAction.TriggerEvent(e);
 
-                Click();
-                return true;
+                    break;
             }
+
+            return base.Handle(e);
         }
     }
 }

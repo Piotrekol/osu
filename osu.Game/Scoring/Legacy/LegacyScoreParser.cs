@@ -5,6 +5,7 @@ using System;
 using System.IO;
 using System.Linq;
 using osu.Game.Beatmaps;
+using osu.Game.Beatmaps.Formats;
 using osu.Game.Beatmaps.Legacy;
 using osu.Game.IO.Legacy;
 using osu.Game.Replays;
@@ -34,7 +35,9 @@ namespace osu.Game.Scoring.Legacy
             using (SerializationReader sr = new SerializationReader(stream))
             {
                 currentRuleset = GetRuleset(sr.ReadByte());
-                score.ScoreInfo = new ScoreInfo { Ruleset = currentRuleset.RulesetInfo };
+                var scoreInfo = new LegacyScoreInfo { Ruleset = currentRuleset.RulesetInfo };
+
+                score.ScoreInfo = scoreInfo;
 
                 var version = sr.ReadInt32();
 
@@ -43,66 +46,42 @@ namespace osu.Game.Scoring.Legacy
                     throw new BeatmapNotFoundException();
 
                 currentBeatmap = workingBeatmap.Beatmap;
-                score.ScoreInfo.Beatmap = currentBeatmap.BeatmapInfo;
+                scoreInfo.Beatmap = currentBeatmap.BeatmapInfo;
 
-                score.ScoreInfo.User = new User { Username = sr.ReadString() };
+                scoreInfo.User = new User { Username = sr.ReadString() };
 
                 // MD5Hash
                 sr.ReadString();
 
-                var count300 = (int)sr.ReadUInt16();
-                var count100 = (int)sr.ReadUInt16();
-                var count50 = (int)sr.ReadUInt16();
-                var countGeki = (int)sr.ReadUInt16();
-                var countKatu = (int)sr.ReadUInt16();
-                var countMiss = (int)sr.ReadUInt16();
+                scoreInfo.Count300 = sr.ReadUInt16();
+                scoreInfo.Count100 = sr.ReadUInt16();
+                scoreInfo.Count50 = sr.ReadUInt16();
+                scoreInfo.CountGeki = sr.ReadUInt16();
+                scoreInfo.CountKatu = sr.ReadUInt16();
+                scoreInfo.CountMiss = sr.ReadUInt16();
 
-                switch (currentRuleset.LegacyID)
-                {
-                    case 0:
-                        score.ScoreInfo.Statistics[HitResult.Great] = count300;
-                        score.ScoreInfo.Statistics[HitResult.Good] = count100;
-                        score.ScoreInfo.Statistics[HitResult.Meh] = count50;
-                        score.ScoreInfo.Statistics[HitResult.Miss] = countMiss;
-                        break;
-                    case 1:
-                        score.ScoreInfo.Statistics[HitResult.Great] = count300;
-                        score.ScoreInfo.Statistics[HitResult.Good] = count100;
-                        score.ScoreInfo.Statistics[HitResult.Miss] = countMiss;
-                        break;
-                    case 2:
-                        score.ScoreInfo.Statistics[HitResult.Perfect] = count300;
-                        score.ScoreInfo.Statistics[HitResult.Miss] = countMiss;
-                        break;
-                    case 3:
-                        score.ScoreInfo.Statistics[HitResult.Perfect] = countGeki;
-                        score.ScoreInfo.Statistics[HitResult.Great] = count300;
-                        score.ScoreInfo.Statistics[HitResult.Good] = countKatu;
-                        score.ScoreInfo.Statistics[HitResult.Ok] = count100;
-                        score.ScoreInfo.Statistics[HitResult.Meh] = count50;
-                        score.ScoreInfo.Statistics[HitResult.Miss] = countMiss;
-                        break;
-                }
-
-                score.ScoreInfo.TotalScore = sr.ReadInt32();
-                score.ScoreInfo.MaxCombo = sr.ReadUInt16();
+                scoreInfo.TotalScore = sr.ReadInt32();
+                scoreInfo.MaxCombo = sr.ReadUInt16();
 
                 /* score.Perfect = */
                 sr.ReadBoolean();
 
-                score.ScoreInfo.Mods = currentRuleset.ConvertLegacyMods((LegacyMods)sr.ReadInt32()).ToArray();
+                scoreInfo.Mods = currentRuleset.ConvertLegacyMods((LegacyMods)sr.ReadInt32()).ToArray();
 
                 /* score.HpGraphString = */
                 sr.ReadString();
 
-                score.ScoreInfo.Date = sr.ReadDateTime();
+                scoreInfo.Date = sr.ReadDateTime();
 
                 var compressedReplay = sr.ReadByteArray();
 
                 if (version >= 20140721)
-                    score.ScoreInfo.OnlineScoreID = sr.ReadInt64();
+                    scoreInfo.OnlineScoreID = sr.ReadInt64();
                 else if (version >= 20121008)
-                    score.ScoreInfo.OnlineScoreID = sr.ReadInt32();
+                    scoreInfo.OnlineScoreID = sr.ReadInt32();
+
+                if (scoreInfo.OnlineScoreID <= 0)
+                    scoreInfo.OnlineScoreID = null;
 
                 if (compressedReplay?.Length > 0)
                 {
@@ -113,6 +92,7 @@ namespace osu.Game.Scoring.Legacy
                             throw new IOException("input .lzma is too short");
 
                         long outSize = 0;
+
                         for (int i = 0; i < 8; i++)
                         {
                             int v = replayInStream.ReadByte();
@@ -159,9 +139,9 @@ namespace osu.Game.Scoring.Legacy
                         score.Rank = score.Mods.Any(m => m is ModHidden || m is ModFlashlight) ? ScoreRank.XH : ScoreRank.X;
                     else if (ratio300 > 0.9 && ratio50 <= 0.01 && countMiss == 0)
                         score.Rank = score.Mods.Any(m => m is ModHidden || m is ModFlashlight) ? ScoreRank.SH : ScoreRank.S;
-                    else if (ratio300 > 0.8 && countMiss == 0 || ratio300 > 0.9)
+                    else if ((ratio300 > 0.8 && countMiss == 0) || ratio300 > 0.9)
                         score.Rank = ScoreRank.A;
-                    else if (ratio300 > 0.7 && countMiss == 0 || ratio300 > 0.8)
+                    else if ((ratio300 > 0.7 && countMiss == 0) || ratio300 > 0.8)
                         score.Rank = ScoreRank.B;
                     else if (ratio300 > 0.6)
                         score.Rank = ScoreRank.C;
@@ -169,6 +149,7 @@ namespace osu.Game.Scoring.Legacy
                         score.Rank = ScoreRank.D;
                     break;
                 }
+
                 case 1:
                 {
                     int totalHits = count50 + count100 + count300 + countMiss;
@@ -181,9 +162,9 @@ namespace osu.Game.Scoring.Legacy
                         score.Rank = score.Mods.Any(m => m is ModHidden || m is ModFlashlight) ? ScoreRank.XH : ScoreRank.X;
                     else if (ratio300 > 0.9 && ratio50 <= 0.01 && countMiss == 0)
                         score.Rank = score.Mods.Any(m => m is ModHidden || m is ModFlashlight) ? ScoreRank.SH : ScoreRank.S;
-                    else if (ratio300 > 0.8 && countMiss == 0 || ratio300 > 0.9)
+                    else if ((ratio300 > 0.8 && countMiss == 0) || ratio300 > 0.9)
                         score.Rank = ScoreRank.A;
-                    else if (ratio300 > 0.7 && countMiss == 0 || ratio300 > 0.8)
+                    else if ((ratio300 > 0.7 && countMiss == 0) || ratio300 > 0.8)
                         score.Rank = ScoreRank.B;
                     else if (ratio300 > 0.6)
                         score.Rank = ScoreRank.C;
@@ -191,6 +172,7 @@ namespace osu.Game.Scoring.Legacy
                         score.Rank = ScoreRank.D;
                     break;
                 }
+
                 case 2:
                 {
                     int totalHits = count50 + count100 + count300 + countMiss + countKatu;
@@ -210,6 +192,7 @@ namespace osu.Game.Scoring.Legacy
                         score.Rank = ScoreRank.D;
                     break;
                 }
+
                 case 3:
                 {
                     int totalHits = count50 + count100 + count300 + countMiss + countGeki + countKatu;
@@ -235,6 +218,7 @@ namespace osu.Game.Scoring.Legacy
         private void readLegacyReplay(Replay replay, StreamReader reader)
         {
             float lastTime = 0;
+            ReplayFrame currentFrame = null;
 
             foreach (var l in reader.ReadToEnd().Split(','))
             {
@@ -249,7 +233,7 @@ namespace osu.Game.Scoring.Legacy
                     continue;
                 }
 
-                var diff = float.Parse(split[0]);
+                var diff = Parsing.ParseFloat(split[0]);
                 lastTime += diff;
 
                 // Todo: At some point we probably want to rewind and play back the negative-time frames
@@ -257,20 +241,25 @@ namespace osu.Game.Scoring.Legacy
                 if (diff < 0)
                     continue;
 
-                replay.Frames.Add(convertFrame(new LegacyReplayFrame(lastTime, float.Parse(split[1]), float.Parse(split[2]), (ReplayButtonState)int.Parse(split[3]))));
+                currentFrame = convertFrame(new LegacyReplayFrame(lastTime,
+                    Parsing.ParseFloat(split[1], Parsing.MAX_COORDINATE_VALUE),
+                    Parsing.ParseFloat(split[2], Parsing.MAX_COORDINATE_VALUE),
+                    (ReplayButtonState)Parsing.ParseInt(split[3])), currentFrame);
+
+                replay.Frames.Add(currentFrame);
             }
         }
 
-        private ReplayFrame convertFrame(LegacyReplayFrame legacyFrame)
+        private ReplayFrame convertFrame(LegacyReplayFrame currentFrame, ReplayFrame lastFrame)
         {
             var convertible = currentRuleset.CreateConvertibleReplayFrame();
             if (convertible == null)
                 throw new InvalidOperationException($"Legacy replay cannot be converted for the ruleset: {currentRuleset.Description}");
 
-            convertible.ConvertFrom(legacyFrame, currentBeatmap);
+            convertible.ConvertFrom(currentFrame, currentBeatmap, lastFrame);
 
             var frame = (ReplayFrame)convertible;
-            frame.Time = legacyFrame.Time;
+            frame.Time = currentFrame.Time;
 
             return frame;
         }

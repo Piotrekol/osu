@@ -1,12 +1,14 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+using System.Linq;
 using osuTK;
 using osuTK.Graphics;
 using osu.Framework.Allocation;
 using osu.Framework.Extensions.IEnumerableExtensions;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Input.Events;
 using osu.Framework.Timing;
@@ -35,12 +37,11 @@ namespace osu.Game.Screens.Edit.Components
                 playButton = new IconButton
                 {
                     Anchor = Anchor.CentreLeft,
-                    Origin = Anchor.Centre,
+                    Origin = Anchor.CentreLeft,
                     Scale = new Vector2(1.4f),
                     IconScale = new Vector2(1.4f),
-                    Icon = FontAwesome.fa_play_circle_o,
+                    Icon = FontAwesome.Regular.PlayCircle,
                     Action = togglePause,
-                    Padding = new MarginPadding { Left = 20 }
                 },
                 new OsuSpriteText
                 {
@@ -88,7 +89,7 @@ namespace osu.Game.Screens.Edit.Components
         {
             base.Update();
 
-            playButton.Icon = adjustableClock.IsRunning ? FontAwesome.fa_pause_circle_o : FontAwesome.fa_play_circle_o;
+            playButton.Icon = adjustableClock.IsRunning ? FontAwesome.Regular.PauseCircle : FontAwesome.Regular.PlayCircle;
         }
 
         private class PlaybackTabControl : OsuTabControl<double>
@@ -105,6 +106,8 @@ namespace osu.Game.Screens.Edit.Components
                 TabContainer.Spacing = Vector2.Zero;
 
                 tempo_values.ForEach(AddItem);
+
+                Current.Value = tempo_values.Last();
             }
 
             public class PlaybackTabItem : TabItem<double>

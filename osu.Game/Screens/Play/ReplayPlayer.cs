@@ -9,7 +9,11 @@ namespace osu.Game.Screens.Play
     {
         private readonly Score score;
 
-        public ReplayPlayer(Score score)
+        // Disallow replays from failing. (see https://github.com/ppy/osu/issues/6108)
+        protected override bool AllowFail => false;
+
+        public ReplayPlayer(Score score, bool allowPause = true, bool showResults = true)
+            : base(allowPause, showResults)
         {
             this.score = score;
         }
@@ -17,7 +21,7 @@ namespace osu.Game.Screens.Play
         protected override void LoadComplete()
         {
             base.LoadComplete();
-            RulesetContainer?.SetReplayScore(score);
+            DrawableRuleset?.SetReplayScore(score);
         }
 
         protected override ScoreInfo CreateScore() => score.ScoreInfo;

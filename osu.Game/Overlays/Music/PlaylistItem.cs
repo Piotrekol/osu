@@ -155,16 +155,18 @@ namespace osu.Game.Overlays.Music
             }
         }
 
+        public bool FilteringActive { get; set; }
+
         private class PlaylistItemHandle : SpriteIcon
         {
             public PlaylistItemHandle()
             {
-                Anchor = Anchor.TopLeft;
-                Origin = Anchor.TopLeft;
+                Anchor = Anchor.CentreLeft;
+                Origin = Anchor.CentreLeft;
                 Size = new Vector2(12);
-                Icon = FontAwesome.fa_bars;
+                Icon = FontAwesome.Solid.Bars;
                 Alpha = 0f;
-                Margin = new MarginPadding { Left = 5, Top = 2 };
+                Margin = new MarginPadding { Left = 5 };
             }
 
             public override bool HandlePositionalInput => IsPresent;

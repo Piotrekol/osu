@@ -8,7 +8,6 @@ using osu.Game.Beatmaps;
 using osu.Game.Rulesets.Difficulty;
 using osu.Game.Rulesets.Mods;
 using osu.Game.Rulesets.Osu.Mods;
-using osu.Game.Rulesets.Osu.Objects;
 using osu.Game.Rulesets.Scoring;
 using osu.Game.Scoring;
 
@@ -17,8 +16,6 @@ namespace osu.Game.Rulesets.Osu.Difficulty
     public class OsuPerformanceCalculator : PerformanceCalculator
     {
         public new OsuDifficultyAttributes Attributes => (OsuDifficultyAttributes)base.Attributes;
-
-        private readonly int countHitCircles;
 
         private Mod[] mods;
 
@@ -32,7 +29,6 @@ namespace osu.Game.Rulesets.Osu.Difficulty
         public OsuPerformanceCalculator(Ruleset ruleset, WorkingBeatmap beatmap, ScoreInfo score)
             : base(ruleset, beatmap, score)
         {
-            countHitCircles = Beatmap.HitObjects.Count(h => h is HitCircle);
         }
 
         public override double Calculate(Dictionary<string, double> categoryRatings = null)
@@ -104,6 +100,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty
                 aimValue *= Math.Min(Math.Pow(scoreMaxCombo, 0.8f) / Math.Pow(Attributes.MaxCombo, 0.8f), 1.0f);
 
             double approachRateFactor = 1.0f;
+
             if (Attributes.ApproachRate > 10.33f)
                 approachRateFactor += 0.3f * (Attributes.ApproachRate - 10.33f);
             else if (Attributes.ApproachRate < 8.0f)

@@ -8,6 +8,7 @@ using osu.Framework.Extensions.Color4Extensions;
 using osu.Framework.Extensions.IEnumerableExtensions;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Effects;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Screens;
 using osu.Game.Graphics.Containers;
@@ -15,15 +16,17 @@ using osu.Game.Screens.Backgrounds;
 using osuTK;
 using osuTK.Graphics;
 using osu.Game.Graphics;
-using osu.Game.Graphics.UserInterface;
 using osu.Framework.Graphics.Shapes;
 using osu.Game.Graphics.Sprites;
 using osu.Game.Scoring;
+using osu.Game.Screens.Play;
 
 namespace osu.Game.Screens.Ranking
 {
     public abstract class Results : OsuScreen
     {
+        protected const float BACKGROUND_BLUR = 20;
+
         private Container circleOuterBackground;
         private Container circleOuter;
         private Container circleInner;
@@ -32,13 +35,14 @@ namespace osu.Game.Screens.Ranking
 
         private ResultModeTabControl modeChangeButtons;
 
+        [Resolved(canBeNull: true)]
+        private Player player { get; set; }
+
         public override bool DisallowExternalBeatmapRulesetChanges => true;
 
         protected readonly ScoreInfo Score;
 
         private Container currentPage;
-
-        private static readonly Vector2 background_blur = new Vector2(20);
 
         protected override BackgroundScreen CreateBackground() => new BackgroundScreenBeatmap(Beatmap.Value);
 
@@ -58,7 +62,7 @@ namespace osu.Game.Screens.Ranking
         public override void OnEntering(IScreen last)
         {
             base.OnEntering(last);
-            (Background as BackgroundScreenBeatmap)?.BlurTo(background_blur, 2500, Easing.OutQuint);
+            ((BackgroundScreenBeatmap)Background).BlurAmount.Value = BACKGROUND_BLUR;
             Background.ScaleTo(1.1f, transition_time, Easing.OutQuint);
 
             allCircles.ForEach(c =>
@@ -100,10 +104,7 @@ namespace osu.Game.Screens.Ranking
 
         public override bool OnExiting(IScreen next)
         {
-            allCircles.ForEach(c =>
-            {
-                c.ScaleTo(0, transition_time, Easing.OutSine);
-            });
+            allCircles.ForEach(c => c.ScaleTo(0, transition_time, Easing.OutSine));
 
             Background.ScaleTo(1f, transition_time / 4, Easing.OutQuint);
 
@@ -254,17 +255,23 @@ namespace osu.Game.Screens.Ranking
                         }
                     }
                 },
-                new BackButton
+                new HotkeyRetryOverlay
                 {
-                    Anchor = Anchor.BottomLeft,
-                    Origin = Anchor.BottomLeft,
-                    Action = this.Exit
+                    Action = () =>
+                    {
+                        if (!this.IsCurrentScreen()) return;
+
+                        player?.Restart();
+                    },
                 },
             };
 
-            foreach (var t in CreateResultPages())
-                modeChangeButtons.AddItem(t);
-            modeChangeButtons.Current.Value = modeChangeButtons.Items.FirstOrDefault();
+            var pages = CreateResultPages();
+
+            foreach (var p in pages)
+                modeChangeButtons.AddItem(p);
+
+            modeChangeButtons.Current.Value = pages.FirstOrDefault();
 
             modeChangeButtons.Current.BindValueChanged(page =>
             {
@@ -274,7 +281,7 @@ namespace osu.Game.Screens.Ranking
                 currentPage = page.NewValue?.CreatePage();
 
                 if (currentPage != null)
-                    circleInner.Add(currentPage);
+                    LoadComponentAsync(currentPage, circleInner.Add);
             }, true);
         }
 

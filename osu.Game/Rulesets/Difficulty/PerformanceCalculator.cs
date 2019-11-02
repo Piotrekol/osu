@@ -17,6 +17,7 @@ namespace osu.Game.Rulesets.Difficulty
         /// <see cref="DifficultyAttributes"/> that are going to be used for performance calculation
         /// </summary>
         protected DifficultyAttributes Attributes;
+
         protected readonly List<TimedDifficultyAttributes> TimedAttributes;
 
         protected readonly Ruleset Ruleset;
@@ -30,8 +31,7 @@ namespace osu.Game.Rulesets.Difficulty
             Ruleset = ruleset;
             Score = score;
 
-            beatmap.Mods.Value = score.Mods;
-            Beatmap = beatmap.GetPlayableBeatmap(ruleset.RulesetInfo);
+            Beatmap = beatmap.GetPlayableBeatmap(ruleset.RulesetInfo, score.Mods);
 
             TimedAttributes = ruleset.CreateDifficultyCalculator(beatmap).CalculateTimed(score.Mods).ToList();
             Attributes = TimedAttributes.LastOrDefault()?.Attributes ?? new DifficultyAttributes();
