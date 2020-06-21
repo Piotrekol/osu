@@ -14,6 +14,7 @@ using osu.Game.Rulesets.Objects.Types;
 using osu.Game.Beatmaps.Formats;
 using osu.Game.Beatmaps.Timing;
 using osu.Game.IO;
+using osu.Game.Rulesets.Catch;
 using osu.Game.Rulesets.Catch.Beatmaps;
 using osu.Game.Rulesets.Mods;
 using osu.Game.Rulesets.Objects;
@@ -240,6 +241,11 @@ namespace osu.Game.Tests.Beatmaps.Formats
             {
                 var controlPoints = decoder.Decode(stream).ControlPointInfo;
 
+                Assert.That(controlPoints.TimingPoints.Count, Is.EqualTo(4));
+                Assert.That(controlPoints.DifficultyPoints.Count, Is.EqualTo(3));
+                Assert.That(controlPoints.EffectPoints.Count, Is.EqualTo(3));
+                Assert.That(controlPoints.SamplePoints.Count, Is.EqualTo(3));
+
                 Assert.That(controlPoints.DifficultyPointAt(500).SpeedMultiplier, Is.EqualTo(1.5).Within(0.1));
                 Assert.That(controlPoints.DifficultyPointAt(1500).SpeedMultiplier, Is.EqualTo(1.5).Within(0.1));
                 Assert.That(controlPoints.DifficultyPointAt(2500).SpeedMultiplier, Is.EqualTo(0.75).Within(0.1));
@@ -313,7 +319,7 @@ namespace osu.Game.Tests.Beatmaps.Formats
             {
                 var beatmap = decoder.Decode(stream);
 
-                var converted = new OsuBeatmapConverter(beatmap).Convert();
+                var converted = new OsuBeatmapConverter(beatmap, new OsuRuleset()).Convert();
                 new OsuBeatmapProcessor(converted).PreProcess();
                 new OsuBeatmapProcessor(converted).PostProcess();
 
@@ -336,7 +342,7 @@ namespace osu.Game.Tests.Beatmaps.Formats
             {
                 var beatmap = decoder.Decode(stream);
 
-                var converted = new CatchBeatmapConverter(beatmap).Convert();
+                var converted = new CatchBeatmapConverter(beatmap, new CatchRuleset()).Convert();
                 new CatchBeatmapProcessor(converted).PreProcess();
                 new CatchBeatmapProcessor(converted).PostProcess();
 
@@ -359,7 +365,7 @@ namespace osu.Game.Tests.Beatmaps.Formats
             {
                 var hitObjects = decoder.Decode(stream).HitObjects;
 
-                var curveData = hitObjects[0] as IHasCurve;
+                var curveData = hitObjects[0] as IHasPathWithRepeats;
                 var positionData = hitObjects[0] as IHasPosition;
 
                 Assert.IsNotNull(positionData);
@@ -413,7 +419,7 @@ namespace osu.Game.Tests.Beatmaps.Formats
                 Assert.AreEqual("soft-hitnormal8", getTestableSampleInfo(hitObjects[4]).LookupNames.First());
             }
 
-            HitSampleInfo getTestableSampleInfo(HitObject hitObject) => hitObject.SampleControlPoint.ApplyTo(hitObject.Samples[0]);
+            static HitSampleInfo getTestableSampleInfo(HitObject hitObject) => hitObject.SampleControlPoint.ApplyTo(hitObject.Samples[0]);
         }
 
         [Test]
@@ -431,7 +437,7 @@ namespace osu.Game.Tests.Beatmaps.Formats
                 Assert.AreEqual("normal-hitnormal3", getTestableSampleInfo(hitObjects[2]).LookupNames.First());
             }
 
-            HitSampleInfo getTestableSampleInfo(HitObject hitObject) => hitObject.SampleControlPoint.ApplyTo(hitObject.Samples[0]);
+            static HitSampleInfo getTestableSampleInfo(HitObject hitObject) => hitObject.SampleControlPoint.ApplyTo(hitObject.Samples[0]);
         }
 
         [Test]
@@ -451,7 +457,7 @@ namespace osu.Game.Tests.Beatmaps.Formats
                 Assert.AreEqual(70, getTestableSampleInfo(hitObjects[3]).Volume);
             }
 
-            HitSampleInfo getTestableSampleInfo(HitObject hitObject) => hitObject.SampleControlPoint.ApplyTo(hitObject.Samples[0]);
+            static HitSampleInfo getTestableSampleInfo(HitObject hitObject) => hitObject.SampleControlPoint.ApplyTo(hitObject.Samples[0]);
         }
 
         [Test]

@@ -12,16 +12,16 @@ using osu.Framework.Graphics.Shaders;
 using osu.Framework.Graphics.Textures;
 using osu.Game.Beatmaps;
 using osu.Game.Graphics;
-using osu.Game.Skinning;
-using osu.Game.Online.API;
-using osu.Game.Users;
 using System;
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
-using osu.Framework.Extensions.Color4Extensions;
+using osu.Framework.Utils;
 
 namespace osu.Game.Screens.Menu
 {
+    /// <summary>
+    /// A visualiser that reacts to music coming from beatmaps.
+    /// </summary>
     public class LogoVisualisation : Drawable, IHasAccentColour
     {
         private readonly IBindable<WorkingBeatmap> beatmap = new Bindable<WorkingBeatmap>();
@@ -70,9 +70,6 @@ namespace osu.Game.Screens.Menu
         private IShader shader;
         private readonly Texture texture;
 
-        private Bindable<User> user;
-        private Bindable<Skin> skin;
-
         public LogoVisualisation()
         {
             texture = Texture.WhitePixel;
@@ -80,21 +77,16 @@ namespace osu.Game.Screens.Menu
         }
 
         [BackgroundDependencyLoader]
-        private void load(ShaderManager shaders, IBindable<WorkingBeatmap> beatmap, IAPIProvider api, SkinManager skinManager)
+        private void load(ShaderManager shaders, IBindable<WorkingBeatmap> beatmap)
         {
             this.beatmap.BindTo(beatmap);
             shader = shaders.Load(VertexShaderDescriptor.TEXTURE_2, FragmentShaderDescriptor.TEXTURE_ROUNDED);
-            user = api.LocalUser.GetBoundCopy();
-            skin = skinManager.CurrentSkin.GetBoundCopy();
-
-            user.ValueChanged += _ => updateColour();
-            skin.BindValueChanged(_ => updateColour(), true);
         }
 
         private void updateAmplitudes()
         {
             var track = beatmap.Value.TrackLoaded ? beatmap.Value.Track : null;
-            var effect = beatmap.Value.BeatmapLoaded ? beatmap.Value.Beatmap.ControlPointInfo.EffectPointAt(track?.CurrentTime ?? Time.Current) : null;
+            var effect = beatmap.Value.BeatmapLoaded ? beatmap.Value.Beatmap?.ControlPointInfo.EffectPointAt(track?.CurrentTime ?? Time.Current) : null;
 
             float[] temporalAmplitudes = track?.CurrentAmplitudes.FrequencyAmplitudes;
 
@@ -115,16 +107,6 @@ namespace osu.Game.Screens.Menu
             }
 
             indexOffset = (indexOffset + index_change) % bars_per_visualiser;
-        }
-
-        private void updateColour()
-        {
-            Color4 defaultColour = Color4.White.Opacity(0.2f);
-
-            if (user.Value?.IsSupporter ?? false)
-                AccentColour = skin.Value.GetConfig<GlobalSkinColour, Color4>(GlobalSkinColour.MenuGlow)?.Value ?? defaultColour;
-            else
-                AccentColour = defaultColour;
         }
 
         protected override void LoadComplete()
@@ -149,7 +131,7 @@ namespace osu.Game.Screens.Menu
                     frequencyAmplitudes[i] = 0;
             }
 
-            Invalidate(Invalidation.DrawNode, shallPropagate: false);
+            Invalidate(Invalidation.DrawNode);
         }
 
         protected override DrawNode CreateDrawNode() => new VisualisationDrawNode(this);
@@ -161,7 +143,7 @@ namespace osu.Game.Screens.Menu
             private IShader shader;
             private Texture texture;
 
-            //Assuming the logo is a circle, we don't need a second dimension.
+            // Assuming the logo is a circle, we don't need a second dimension.
             private float size;
 
             private Color4 colour;
@@ -205,16 +187,16 @@ namespace osu.Game.Screens.Menu
                             if (audioData[i] < amplitude_dead_zone)
                                 continue;
 
-                            float rotation = MathHelper.DegreesToRadians(i / (float)bars_per_visualiser * 360 + j * 360 / visualiser_rounds);
-                            float rotationCos = (float)Math.Cos(rotation);
-                            float rotationSin = (float)Math.Sin(rotation);
-                            //taking the cos and sin to the 0..1 range
+                            float rotation = MathUtils.DegreesToRadians(i / (float)bars_per_visualiser * 360 + j * 360 / visualiser_rounds);
+                            float rotationCos = MathF.Cos(rotation);
+                            float rotationSin = MathF.Sin(rotation);
+                            // taking the cos and sin to the 0..1 range
                             var barPosition = new Vector2(rotationCos / 2 + 0.5f, rotationSin / 2 + 0.5f) * size;
 
-                            var barSize = new Vector2(size * (float)Math.Sqrt(2 * (1 - Math.Cos(MathHelper.DegreesToRadians(360f / bars_per_visualiser)))) / 2f, bar_length * audioData[i]);
-                            //The distance between the position and the sides of the bar.
+                            var barSize = new Vector2(size * MathF.Sqrt(2 * (1 - MathF.Cos(MathUtils.DegreesToRadians(360f / bars_per_visualiser)))) / 2f, bar_length * audioData[i]);
+                            // The distance between the position and the sides of the bar.
                             var bottomOffset = new Vector2(-rotationSin * barSize.X / 2, rotationCos * barSize.X / 2);
-                            //The distance between the bottom side of the bar and the top side.
+                            // The distance between the bottom side of the bar and the top side.
                             var amplitudeOffset = new Vector2(rotationCos * barSize.Y, rotationSin * barSize.Y);
 
                             var rectangle = new Quad(
@@ -230,7 +212,7 @@ namespace osu.Game.Screens.Menu
                                 colourInfo,
                                 null,
                                 vertexBatch.AddAction,
-                                //barSize by itself will make it smooth more in the X axis than in the Y axis, this reverts that.
+                                // barSize by itself will make it smooth more in the X axis than in the Y axis, this reverts that.
                                 Vector2.Divide(inflation, barSize.Yx));
                         }
                     }

@@ -49,12 +49,12 @@ desc 'Deploy to play store'
   desc 'Compile the project'
   lane :build do |options|
     nuget_restore(
-      project_path: 'osu.Android.sln'
+      project_path: 'osu.sln'
     )
 
     souyuz(
       build_configuration: 'Release',
-      solution_path: 'osu.Android.sln',
+      solution_path: 'osu.sln',
       platform: "android",
       output_path: "osu.Android/bin/Release/",
       keystore_path: options[:keystore_path],
@@ -70,7 +70,7 @@ desc 'Deploy to play store'
     android_build = split.join('')
 
     app_version(
-      solution_path: 'osu.Android.sln',
+      solution_path: 'osu.sln',
       version: options[:version],
       build: android_build,
     )
@@ -97,8 +97,10 @@ platform :ios do
     changelog.gsub!('$BUILD_ID', options[:build])
 
     pilot(
-      wait_processing_interval: 1800,
+      wait_processing_interval: 900,
       changelog: changelog,
+      groups: ['osu! supporters', 'public'],
+      distribute_external: true,
       ipa: './osu.iOS/bin/iPhone/Release/osu.iOS.ipa'
     )
   end
@@ -106,12 +108,11 @@ platform :ios do
   desc 'Compile the project'
   lane :build do
     nuget_restore(
-      project_path: 'osu.iOS.sln'
+      project_path: 'osu.sln'
     )
 
     souyuz(
       platform: "ios",
-      build_target: "osu_iOS",
       plist_path: "../osu.iOS/Info.plist"
     )
   end

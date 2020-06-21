@@ -1,10 +1,10 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
-using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using JetBrains.Annotations;
 using osu.Framework.Allocation;
-using osu.Framework.Extensions.IEnumerableExtensions;
 using osu.Framework.Graphics;
 using osu.Framework.Input;
 using osu.Framework.Input.Events;
@@ -26,12 +26,14 @@ namespace osu.Game.Rulesets.Osu.Edit.Blueprints.Sliders
         private SliderBodyPiece bodyPiece;
         private HitCirclePiece headCirclePiece;
         private HitCirclePiece tailCirclePiece;
+        private PathControlPointVisualiser controlPointVisualiser;
 
-        private readonly List<Segment> segments = new List<Segment>();
-        private Vector2 cursor;
         private InputManager inputManager;
 
         private PlacementState state;
+        private PathControlPoint segmentStart;
+        private PathControlPoint cursor;
+        private int currentSegmentLength;
 
         [Resolved(CanBeNull = true)]
         private HitObjectComposer composer { get; set; }
@@ -40,7 +42,9 @@ namespace osu.Game.Rulesets.Osu.Edit.Blueprints.Sliders
             : base(new Objects.Slider())
         {
             RelativeSizeAxes = Axes.Both;
-            segments.Add(new Segment(Vector2.Zero));
+
+            HitObject.Path.ControlPoints.Add(segmentStart = new PathControlPoint(Vector2.Zero, PathType.Linear));
+            currentSegmentLength = 1;
         }
 
         [BackgroundDependencyLoader]
@@ -51,7 +55,7 @@ namespace osu.Game.Rulesets.Osu.Edit.Blueprints.Sliders
                 bodyPiece = new SliderBodyPiece(),
                 headCirclePiece = new HitCirclePiece(),
                 tailCirclePiece = new HitCirclePiece(),
-                new PathControlPointVisualiser(HitObject) { ControlPointsChanged = _ => updateSlider() },
+                controlPointVisualiser = new PathControlPointVisualiser(HitObject, false)
             };
 
             setState(PlacementState.Initial);
@@ -63,24 +67,28 @@ namespace osu.Game.Rulesets.Osu.Edit.Blueprints.Sliders
             inputManager = GetContainingInputManager();
         }
 
-        public override void UpdatePosition(Vector2 screenSpacePosition)
+        public override void UpdatePosition(SnapResult result)
         {
+            base.UpdatePosition(result);
+
             switch (state)
             {
                 case PlacementState.Initial:
-                    HitObject.Position = ToLocalSpace(screenSpacePosition);
+                    BeginPlacement();
+                    HitObject.Position = ToLocalSpace(result.ScreenSpacePosition);
                     break;
 
                 case PlacementState.Body:
-                    // The given screen-space position may have been externally snapped, but the unsnapped position from the input manager
-                    // is used instead since snapping control points doesn't make much sense
-                    cursor = ToLocalSpace(inputManager.CurrentState.Mouse.Position) - HitObject.Position;
+                    updateCursor();
                     break;
             }
         }
 
-        protected override bool OnClick(ClickEvent e)
+        protected override bool OnMouseDown(MouseDownEvent e)
         {
+            if (e.Button != MouseButton.Left)
+                return base.OnMouseDown(e);
+
             switch (state)
             {
                 case PlacementState.Initial:
@@ -88,11 +96,21 @@ namespace osu.Game.Rulesets.Osu.Edit.Blueprints.Sliders
                     break;
 
                 case PlacementState.Body:
-                    switch (e.Button)
+                    if (canPlaceNewControlPoint(out var lastPoint))
                     {
-                        case MouseButton.Left:
-                            segments.Last().ControlPoints.Add(cursor);
-                            break;
+                        // Place a new point by detatching the current cursor.
+                        updateCursor();
+                        cursor = null;
+                    }
+                    else
+                    {
+                        // Transform the last point into a new segment.
+                        Debug.Assert(lastPoint != null);
+
+                        segmentStart = lastPoint;
+                        segmentStart.Type.Value = PathType.Linear;
+
+                        currentSegmentLength = 1;
                     }
 
                     break;
@@ -101,29 +119,23 @@ namespace osu.Game.Rulesets.Osu.Edit.Blueprints.Sliders
             return true;
         }
 
-        protected override bool OnMouseUp(MouseUpEvent e)
+        protected override void OnMouseUp(MouseUpEvent e)
         {
             if (state == PlacementState.Body && e.Button == MouseButton.Right)
                 endCurve();
-            return base.OnMouseUp(e);
-        }
-
-        protected override bool OnDoubleClick(DoubleClickEvent e)
-        {
-            segments.Add(new Segment(segments[segments.Count - 1].ControlPoints.Last()));
-            return true;
+            base.OnMouseUp(e);
         }
 
         private void beginCurve()
         {
-            BeginPlacement();
+            BeginPlacement(commitStart: true);
             setState(PlacementState.Body);
         }
 
         private void endCurve()
         {
             updateSlider();
-            EndPlacement();
+            EndPlacement(true);
         }
 
         protected override void Update()
@@ -132,14 +144,72 @@ namespace osu.Game.Rulesets.Osu.Edit.Blueprints.Sliders
             updateSlider();
         }
 
+        private void updatePathType()
+        {
+            switch (currentSegmentLength)
+            {
+                case 1:
+                case 2:
+                    segmentStart.Type.Value = PathType.Linear;
+                    break;
+
+                case 3:
+                    segmentStart.Type.Value = PathType.PerfectCurve;
+                    break;
+
+                default:
+                    segmentStart.Type.Value = PathType.Bezier;
+                    break;
+            }
+        }
+
+        private void updateCursor()
+        {
+            if (canPlaceNewControlPoint(out _))
+            {
+                // The cursor does not overlap a previous control point, so it can be added if not already existing.
+                if (cursor == null)
+                {
+                    HitObject.Path.ControlPoints.Add(cursor = new PathControlPoint { Position = { Value = Vector2.Zero } });
+
+                    // The path type should be adjusted in the progression of updatePathType() (Linear -> PC -> Bezier).
+                    currentSegmentLength++;
+                    updatePathType();
+                }
+
+                // Update the cursor position.
+                cursor.Position.Value = ToLocalSpace(inputManager.CurrentState.Mouse.Position) - HitObject.Position;
+            }
+            else if (cursor != null)
+            {
+                // The cursor overlaps a previous control point, so it's removed.
+                HitObject.Path.ControlPoints.Remove(cursor);
+                cursor = null;
+
+                // The path type should be adjusted in the reverse progression of updatePathType() (Bezier -> PC -> Linear).
+                currentSegmentLength--;
+                updatePathType();
+            }
+        }
+
+        /// <summary>
+        /// Whether a new control point can be placed at the current mouse position.
+        /// </summary>
+        /// <param name="lastPoint">The last-placed control point. May be null, but is not null if <c>false</c> is returned.</param>
+        /// <returns>Whether a new control point can be placed at the current position.</returns>
+        private bool canPlaceNewControlPoint([CanBeNull] out PathControlPoint lastPoint)
+        {
+            // We cannot rely on the ordering of drawable pieces, so find the respective drawable piece by searching for the last non-cursor control point.
+            var last = HitObject.Path.ControlPoints.LastOrDefault(p => p != cursor);
+            var lastPiece = controlPointVisualiser.Pieces.Single(p => p.ControlPoint == last);
+
+            lastPoint = last;
+            return lastPiece?.IsHovered != true;
+        }
+
         private void updateSlider()
         {
-            Vector2[] newControlPoints = segments.SelectMany(s => s.ControlPoints).Concat(cursor.Yield()).ToArray();
-
-            var unsnappedPath = new SliderPath(newControlPoints.Length > 2 ? PathType.Bezier : PathType.Linear, newControlPoints);
-            var snappedDistance = composer?.GetSnappedDistanceFromDistance(HitObject.StartTime, (float)unsnappedPath.Distance) ?? (float)unsnappedPath.Distance;
-
-            HitObject.Path = new SliderPath(unsnappedPath.Type, newControlPoints, snappedDistance);
+            HitObject.Path.ExpectedDistance.Value = composer?.GetSnappedDistanceFromDistance(HitObject.StartTime, (float)HitObject.Path.CalculatedDistance) ?? (float)HitObject.Path.CalculatedDistance;
 
             bodyPiece.UpdateFrom(HitObject);
             headCirclePiece.UpdateFrom(HitObject.HeadCircle);
@@ -155,16 +225,6 @@ namespace osu.Game.Rulesets.Osu.Edit.Blueprints.Sliders
         {
             Initial,
             Body,
-        }
-
-        private class Segment
-        {
-            public readonly List<Vector2> ControlPoints = new List<Vector2>();
-
-            public Segment(Vector2 offset)
-            {
-                ControlPoints.Add(offset);
-            }
         }
     }
 }

@@ -4,13 +4,13 @@
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
+using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Primitives;
+using osu.Framework.Graphics.Shapes;
 using osu.Game.Graphics;
 using osu.Game.Rulesets.Mania.Objects.Drawables;
-using osu.Game.Rulesets.Mania.Objects.Drawables.Pieces;
 using osu.Game.Rulesets.UI.Scrolling;
 using osuTK;
-using osuTK.Graphics;
 
 namespace osu.Game.Rulesets.Mania.Edit.Blueprints
 {
@@ -40,13 +40,21 @@ namespace osu.Game.Rulesets.Mania.Edit.Blueprints
 
             InternalChildren = new Drawable[]
             {
-                new HoldNoteNoteSelectionBlueprint(DrawableObject.Head),
-                new HoldNoteNoteSelectionBlueprint(DrawableObject.Tail),
-                new BodyPiece
+                new HoldNoteNoteSelectionBlueprint(DrawableObject, HoldNotePosition.Start),
+                new HoldNoteNoteSelectionBlueprint(DrawableObject, HoldNotePosition.End),
+                new Container
                 {
-                    AccentColour = Color4.Transparent,
-                    BorderColour = colours.Yellow
-                },
+                    RelativeSizeAxes = Axes.Both,
+                    Masking = true,
+                    BorderThickness = 1,
+                    BorderColour = colours.Yellow,
+                    Child = new Box
+                    {
+                        RelativeSizeAxes = Axes.Both,
+                        Alpha = 0,
+                        AlwaysPresent = true,
+                    }
+                }
             };
         }
 
@@ -54,37 +62,21 @@ namespace osu.Game.Rulesets.Mania.Edit.Blueprints
         {
             base.Update();
 
-            Size = DrawableObject.DrawSize + new Vector2(0, DrawableObject.Tail.DrawHeight);
+            // Todo: This shouldn't exist, mania should not reference the drawable hitobject directly.
+            if (DrawableObject.IsLoaded)
+            {
+                Size = DrawableObject.DrawSize + new Vector2(0, DrawableObject.Tail.DrawHeight);
 
-            // This is a side-effect of not matching the hitobject's anchors/origins, which is kinda hard to do
-            // When scrolling upwards our origin is already at the top of the head note (which is the intended location),
-            // but when scrolling downwards our origin is at the _bottom_ of the tail note (where we need to be at the _top_ of the tail note)
-            if (direction.Value == ScrollingDirection.Down)
-                Y -= DrawableObject.Tail.DrawHeight;
+                // This is a side-effect of not matching the hitobject's anchors/origins, which is kinda hard to do
+                // When scrolling upwards our origin is already at the top of the head note (which is the intended location),
+                // but when scrolling downwards our origin is at the _bottom_ of the tail note (where we need to be at the _top_ of the tail note)
+                if (direction.Value == ScrollingDirection.Down)
+                    Y -= DrawableObject.Tail.DrawHeight;
+            }
         }
 
         public override Quad SelectionQuad => ScreenSpaceDrawQuad;
 
-        private class HoldNoteNoteSelectionBlueprint : NoteSelectionBlueprint
-        {
-            public HoldNoteNoteSelectionBlueprint(DrawableNote note)
-                : base(note)
-            {
-                Select();
-            }
-
-            protected override void Update()
-            {
-                base.Update();
-
-                Anchor = DrawableObject.Anchor;
-                Origin = DrawableObject.Origin;
-
-                Position = DrawableObject.DrawPosition;
-            }
-
-            // Todo: This is temporary, since the note masks don't do anything special yet. In the future they will handle input.
-            public override bool HandlePositionalInput => false;
-        }
+        public override Vector2 ScreenSpaceSelectionPoint => DrawableObject.Head.ScreenSpaceDrawQuad.Centre;
     }
 }

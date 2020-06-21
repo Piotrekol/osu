@@ -31,10 +31,14 @@ namespace osu.Game.Screens.Play
 
         public bool IsRunning => underlyingClock.IsRunning;
 
+        /// <summary>
+        /// Whether an ongoing seek operation is active.
+        /// </summary>
+        public virtual bool IsSeeking => false;
+
         public void ProcessFrame()
         {
             // we do not want to process the underlying clock.
-            // this is handled by PauseContainer.
         }
 
         public double ElapsedFrameTime => underlyingClock.ElapsedFrameTime;
