@@ -8,7 +8,6 @@ using Microsoft.Win32;
 using osu.Framework.Allocation;
 using osu.Framework.Logging;
 using osu.Framework.Platform;
-using osu.Framework.Platform.Windows;
 using osu.Framework.Threading;
 using osu.Game.Beatmaps;
 using osu.Game.Beatmaps.Legacy;
@@ -35,6 +34,7 @@ namespace osu.Game.Tournament.IPC
 
         private int lastBeatmapId;
         private ScheduledDelegate scheduled;
+        private GetBeatmapRequest beatmapLookupRequest;
 
         public Storage Storage { get; private set; }
 
@@ -52,7 +52,12 @@ namespace osu.Game.Tournament.IPC
 
             try
             {
-                Storage = new StableStorage(host as DesktopGameHost);
+                var path = findStablePath();
+
+                if (string.IsNullOrEmpty(path))
+                    return null;
+
+                Storage = new DesktopStorage(path, host as DesktopGameHost);
 
                 const string file_ipc_filename = "ipc.txt";
                 const string file_ipc_state_filename = "ipc-state.txt";
@@ -60,6 +65,7 @@ namespace osu.Game.Tournament.IPC
                 const string file_ipc_channel_filename = "ipc-channel.txt";
 
                 if (Storage.Exists(file_ipc_filename))
+                {
                     scheduled = Scheduler.AddDelayed(delegate
                     {
                         try
@@ -72,6 +78,8 @@ namespace osu.Game.Tournament.IPC
 
                                 if (lastBeatmapId != beatmapId)
                                 {
+                                    beatmapLookupRequest?.Cancel();
+
                                     lastBeatmapId = beatmapId;
 
                                     var existing = ladder.CurrentMatch.Value?.Round.Value?.Beatmaps.FirstOrDefault(b => b.ID == beatmapId && b.BeatmapInfo != null);
@@ -80,9 +88,9 @@ namespace osu.Game.Tournament.IPC
                                         Beatmap.Value = existing.BeatmapInfo;
                                     else
                                     {
-                                        var req = new GetBeatmapRequest(new BeatmapInfo { OnlineBeatmapID = beatmapId });
-                                        req.Success += b => Beatmap.Value = b.ToBeatmap(Rulesets);
-                                        API.Queue(req);
+                                        beatmapLookupRequest = new GetBeatmapRequest(new BeatmapInfo { OnlineBeatmapID = beatmapId });
+                                        beatmapLookupRequest.Success += b => Beatmap.Value = b.ToBeatmap(Rulesets);
+                                        API.Queue(beatmapLookupRequest);
                                     }
                                 }
 
@@ -134,6 +142,7 @@ namespace osu.Game.Tournament.IPC
                             // file might be in use.
                         }
                     }, 250, true);
+                }
             }
             catch (Exception e)
             {
@@ -143,69 +152,50 @@ namespace osu.Game.Tournament.IPC
             return Storage;
         }
 
-        /// <summary>
-        /// A method of accessing an osu-stable install in a controlled fashion.
-        /// </summary>
-        private class StableStorage : WindowsStorage
+        private string findStablePath()
         {
-            protected override string LocateBasePath()
-            {
-                bool checkExists(string p)
-                {
-                    return File.Exists(Path.Combine(p, "ipc.txt"));
-                }
+            static bool checkExists(string p) => File.Exists(Path.Combine(p, "ipc.txt"));
 
-                string stableInstallPath = string.Empty;
+            string stableInstallPath = string.Empty;
+
+            try
+            {
+                try
+                {
+                    stableInstallPath = Environment.GetEnvironmentVariable("OSU_STABLE_PATH");
+
+                    if (checkExists(stableInstallPath))
+                        return stableInstallPath;
+                }
+                catch
+                {
+                }
 
                 try
                 {
-                    try
-                    {
-                        stableInstallPath = "G:\\My Drive\\Main\\osu!tourney";
+                    using (RegistryKey key = Registry.ClassesRoot.OpenSubKey("osu"))
+                        stableInstallPath = key?.OpenSubKey(@"shell\open\command")?.GetValue(string.Empty).ToString().Split('"')[1].Replace("osu!.exe", "");
 
-                        if (checkExists(stableInstallPath))
-                            return stableInstallPath;
-
-                        stableInstallPath = "G:\\My Drive\\Main\\osu!mappool";
-
-                        if (checkExists(stableInstallPath))
-                            return stableInstallPath;
-                    }
-                    catch
-                    {
-                    }
-
-                    try
-                    {
-                        using (RegistryKey key = Registry.ClassesRoot.OpenSubKey("osu"))
-                            stableInstallPath = key?.OpenSubKey(@"shell\open\command")?.GetValue(String.Empty).ToString().Split('"')[1].Replace("osu!.exe", "");
-
-                        if (checkExists(stableInstallPath))
-                            return stableInstallPath;
-                    }
-                    catch
-                    {
-                    }
-
-                    stableInstallPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"osu!");
                     if (checkExists(stableInstallPath))
                         return stableInstallPath;
-
-                    stableInstallPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".osu");
-                    if (checkExists(stableInstallPath))
-                        return stableInstallPath;
-
-                    return null;
                 }
-                finally
+                catch
                 {
-                    Logger.Log($"Stable path for tourney usage: {stableInstallPath}");
                 }
-            }
 
-            public StableStorage(DesktopGameHost host)
-                : base(string.Empty, host)
+                stableInstallPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"osu!");
+                if (checkExists(stableInstallPath))
+                    return stableInstallPath;
+
+                stableInstallPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".osu");
+                if (checkExists(stableInstallPath))
+                    return stableInstallPath;
+
+                return null;
+            }
+            finally
             {
+                Logger.Log($"Stable path for tourney usage: {stableInstallPath}");
             }
         }
     }

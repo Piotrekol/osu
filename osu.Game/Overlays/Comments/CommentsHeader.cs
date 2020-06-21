@@ -10,13 +10,12 @@ using osu.Game.Graphics;
 using osu.Framework.Graphics.Sprites;
 using osuTK;
 using osu.Framework.Input.Events;
+using osu.Game.Graphics.Sprites;
 
 namespace osu.Game.Overlays.Comments
 {
     public class CommentsHeader : CompositeDrawable
     {
-        private const int font_size = 14;
-
         public readonly Bindable<CommentsSortCriteria> Sort = new Bindable<CommentsSortCriteria>();
         public readonly BindableBool ShowDeleted = new BindableBool();
 
@@ -39,29 +38,11 @@ namespace osu.Game.Overlays.Comments
                     Padding = new MarginPadding { Horizontal = 50 },
                     Children = new Drawable[]
                     {
-                        new FillFlowContainer
+                        new OverlaySortTabControl<CommentsSortCriteria>
                         {
-                            AutoSizeAxes = Axes.Both,
-                            Direction = FillDirection.Horizontal,
-                            Spacing = new Vector2(10, 0),
                             Anchor = Anchor.CentreLeft,
                             Origin = Anchor.CentreLeft,
-                            Children = new Drawable[]
-                            {
-                                new SpriteText
-                                {
-                                    Anchor = Anchor.CentreLeft,
-                                    Origin = Anchor.CentreLeft,
-                                    Font = OsuFont.GetFont(size: font_size),
-                                    Text = @"Sort by"
-                                },
-                                new SortTabControl
-                                {
-                                    Anchor = Anchor.CentreLeft,
-                                    Origin = Anchor.CentreLeft,
-                                    Current = Sort
-                                }
-                            }
+                            Current = Sort
                         },
                         new ShowDeletedButton
                         {
@@ -75,9 +56,9 @@ namespace osu.Game.Overlays.Comments
         }
 
         [BackgroundDependencyLoader]
-        private void load(OsuColour colours)
+        private void load(OverlayColourProvider colourProvider)
         {
-            background.Colour = colours.Gray3;
+            background.Colour = colourProvider.Background4;
         }
 
         private class ShowDeletedButton : HeaderButton
@@ -101,11 +82,11 @@ namespace osu.Game.Overlays.Comments
                             Origin = Anchor.CentreLeft,
                             Size = new Vector2(10),
                         },
-                        new SpriteText
+                        new OsuSpriteText
                         {
                             Anchor = Anchor.CentreLeft,
                             Origin = Anchor.CentreLeft,
-                            Font = OsuFont.GetFont(size: font_size),
+                            Font = OsuFont.GetFont(size: 12),
                             Text = @"Show deleted"
                         }
                     },
@@ -124,5 +105,13 @@ namespace osu.Game.Overlays.Comments
                 return true;
             }
         }
+    }
+
+    public enum CommentsSortCriteria
+    {
+        [System.ComponentModel.Description(@"Recent")]
+        New,
+        Old,
+        Top
     }
 }

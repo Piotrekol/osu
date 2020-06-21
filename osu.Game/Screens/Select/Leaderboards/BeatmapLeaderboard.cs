@@ -21,6 +21,9 @@ namespace osu.Game.Screens.Select.Leaderboards
     {
         public Action<ScoreInfo> ScoreSelected;
 
+        [Resolved]
+        private RulesetStore rulesets { get; set; }
+
         private BeatmapInfo beatmap;
 
         public BeatmapInfo Beatmap
@@ -56,6 +59,8 @@ namespace osu.Game.Screens.Select.Leaderboards
         private bool filterMods;
 
         private UserTopScoreContainer topScoreContainer;
+
+        private IBindable<WeakReference<ScoreInfo>> itemRemoved;
 
         /// <summary>
         /// Whether to apply the game's currently selected mods as a filter when retrieving scores.
@@ -100,6 +105,9 @@ namespace osu.Game.Screens.Select.Leaderboards
             {
                 ScoreSelected = s => ScoreSelected?.Invoke(s)
             });
+
+            itemRemoved = scoreManager.ItemRemoved.GetBoundCopy();
+            itemRemoved.BindValueChanged(onScoreRemoved);
         }
 
         protected override void Reset()
@@ -107,6 +115,8 @@ namespace osu.Game.Screens.Select.Leaderboards
             base.Reset();
             TopScore = null;
         }
+
+        private void onScoreRemoved(ValueChangedEvent<WeakReference<ScoreInfo>> score) => Schedule(RefreshScores);
 
         protected override bool IsOnlineScope => Scope != BeatmapLeaderboardScope.Local;
 
@@ -172,14 +182,14 @@ namespace osu.Game.Screens.Select.Leaderboards
 
             req.Success += r =>
             {
-                scoresCallback?.Invoke(r.Scores);
+                scoresCallback?.Invoke(r.Scores.Select(s => s.CreateScoreInfo(rulesets)));
                 TopScore = r.UserScore;
             };
 
             return req;
         }
 
-        protected override LeaderboardScore CreateDrawableScore(ScoreInfo model, int index) => new LeaderboardScore(model, index)
+        protected override LeaderboardScore CreateDrawableScore(ScoreInfo model, int index) => new LeaderboardScore(model, index, IsOnlineScope)
         {
             Action = () => ScoreSelected?.Invoke(model)
         };

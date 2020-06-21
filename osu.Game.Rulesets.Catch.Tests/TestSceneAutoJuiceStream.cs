@@ -7,19 +7,13 @@ using osu.Game.Rulesets.Catch.Objects;
 using osu.Game.Rulesets.Catch.UI;
 using osu.Game.Rulesets.Objects;
 using osu.Game.Rulesets.Objects.Types;
-using osu.Game.Screens.Play;
 using osu.Game.Tests.Visual;
 using osuTK;
 
 namespace osu.Game.Rulesets.Catch.Tests
 {
-    public class TestSceneAutoJuiceStream : PlayerTestScene
+    public class TestSceneAutoJuiceStream : TestSceneCatchPlayer
     {
-        public TestSceneAutoJuiceStream()
-            : base(new CatchRuleset())
-        {
-        }
-
         protected override IBeatmap CreateBeatmap(RulesetInfo ruleset)
         {
             var beatmap = new Beatmap
@@ -51,9 +45,9 @@ namespace osu.Game.Rulesets.Catch.Tests
             return beatmap;
         }
 
-        protected override Player CreatePlayer(Ruleset ruleset)
+        protected override TestPlayer CreatePlayer(Ruleset ruleset)
         {
-            Mods.Value = Mods.Value.Concat(new[] { ruleset.GetAutoplayMod() }).ToArray();
+            SelectedMods.Value = SelectedMods.Value.Concat(new[] { ruleset.GetAutoplayMod() }).ToArray();
             return base.CreatePlayer(ruleset);
         }
     }

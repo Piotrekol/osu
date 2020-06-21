@@ -16,6 +16,8 @@ namespace osu.Game.Screens.Select.Carousel
 
         public BeatmapSetInfo BeatmapSet;
 
+        public Func<IEnumerable<BeatmapInfo>, BeatmapInfo> GetRecommendedBeatmap;
+
         public CarouselBeatmapSet(BeatmapSetInfo beatmapSet)
         {
             BeatmapSet = beatmapSet ?? throw new ArgumentNullException(nameof(beatmapSet));
@@ -28,6 +30,17 @@ namespace osu.Game.Screens.Select.Carousel
 
         protected override DrawableCarouselItem CreateDrawableRepresentation() => new DrawableCarouselBeatmapSet(this);
 
+        protected override CarouselItem GetNextToSelect()
+        {
+            if (LastSelected == null)
+            {
+                if (GetRecommendedBeatmap?.Invoke(Children.OfType<CarouselBeatmap>().Where(b => !b.Filtered.Value).Select(b => b.Beatmap)) is BeatmapInfo recommended)
+                    return Children.OfType<CarouselBeatmap>().First(b => b.Beatmap == recommended);
+            }
+
+            return base.GetNextToSelect();
+        }
+
         public override int CompareTo(FilterCriteria criteria, CarouselItem other)
         {
             if (!(other is CarouselBeatmapSet otherSet))
@@ -37,13 +50,13 @@ namespace osu.Game.Screens.Select.Carousel
             {
                 default:
                 case SortMode.Artist:
-                    return string.Compare(BeatmapSet.Metadata.Artist, otherSet.BeatmapSet.Metadata.Artist, StringComparison.InvariantCultureIgnoreCase);
+                    return string.Compare(BeatmapSet.Metadata.Artist, otherSet.BeatmapSet.Metadata.Artist, StringComparison.OrdinalIgnoreCase);
 
                 case SortMode.Title:
-                    return string.Compare(BeatmapSet.Metadata.Title, otherSet.BeatmapSet.Metadata.Title, StringComparison.InvariantCultureIgnoreCase);
+                    return string.Compare(BeatmapSet.Metadata.Title, otherSet.BeatmapSet.Metadata.Title, StringComparison.OrdinalIgnoreCase);
 
                 case SortMode.Author:
-                    return string.Compare(BeatmapSet.Metadata.Author.Username, otherSet.BeatmapSet.Metadata.Author.Username, StringComparison.InvariantCultureIgnoreCase);
+                    return string.Compare(BeatmapSet.Metadata.Author.Username, otherSet.BeatmapSet.Metadata.Author.Username, StringComparison.OrdinalIgnoreCase);
 
                 case SortMode.DateAdded:
                     return otherSet.BeatmapSet.DateAdded.CompareTo(BeatmapSet.DateAdded);
@@ -62,7 +75,7 @@ namespace osu.Game.Screens.Select.Carousel
         /// <summary>
         /// All beatmaps which are not filtered and valid for display.
         /// </summary>
-        protected IEnumerable<BeatmapInfo> ValidBeatmaps => Beatmaps.Where(b => !b.Filtered.Value).Select(b => b.Beatmap);
+        protected IEnumerable<BeatmapInfo> ValidBeatmaps => Beatmaps.Where(b => !b.Filtered.Value || b.State.Value == CarouselItemState.Selected).Select(b => b.Beatmap);
 
         private int compareUsingAggregateMax(CarouselBeatmapSet other, Func<BeatmapInfo, double> func)
         {

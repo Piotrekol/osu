@@ -56,6 +56,7 @@ namespace osu.Game.Beatmaps.ControlPoints
         /// <summary>
         /// All control points, of all types.
         /// </summary>
+        [JsonIgnore]
         public IEnumerable<ControlPoint> AllControlPoints => Groups.SelectMany(g => g.ControlPoints).ToArray();
 
         /// <summary>
@@ -195,8 +196,8 @@ namespace osu.Game.Beatmaps.ControlPoints
             if (time < list[0].Time)
                 return null;
 
-            if (time >= list[list.Count - 1].Time)
-                return list[list.Count - 1];
+            if (time >= list[^1].Time)
+                return list[^1];
 
             int l = 0;
             int r = list.Count - 2;
@@ -218,7 +219,7 @@ namespace osu.Game.Beatmaps.ControlPoints
         }
 
         /// <summary>
-        /// Check whether <see cref="newPoint"/> should be added.
+        /// Check whether <paramref name="newPoint"/> should be added.
         /// </summary>
         /// <param name="time">The time to find the timing control point at.</param>
         /// <param name="newPoint">A point to be added.</param>
@@ -239,7 +240,7 @@ namespace osu.Game.Beatmaps.ControlPoints
                     break;
 
                 case SampleControlPoint _:
-                    existing = SamplePointAt(time);
+                    existing = binarySearch(SamplePoints, time);
                     break;
 
                 case DifficultyControlPoint _:
@@ -247,7 +248,7 @@ namespace osu.Game.Beatmaps.ControlPoints
                     break;
             }
 
-            return existing?.EquivalentTo(newPoint) == true;
+            return newPoint?.IsRedundant(existing) == true;
         }
 
         private void groupItemAdded(ControlPoint controlPoint)

@@ -33,6 +33,9 @@ namespace osu.Game.Overlays.Comments
         [Resolved]
         private IAPIProvider api { get; set; }
 
+        [Resolved]
+        private OverlayColourProvider colourProvider { get; set; }
+
         private readonly Comment comment;
         private Box background;
         private Box hoverLayer;
@@ -48,8 +51,6 @@ namespace osu.Game.Overlays.Comments
         {
             this.comment = comment;
 
-            Action = onAction;
-
             AutoSizeAxes = Axes.X;
             Height = 20;
             LoadingAnimationSize = new Vector2(10);
@@ -60,6 +61,9 @@ namespace osu.Game.Overlays.Comments
         {
             AccentColour = borderContainer.BorderColour = sideNumber.Colour = colours.GreenLight;
             hoverLayer.Colour = Color4.Black.Opacity(0.5f);
+
+            if (api.IsLoggedIn && api.LocalUser.Value.Id != comment.UserId)
+                Action = onAction;
         }
 
         protected override void LoadComplete()
@@ -67,7 +71,7 @@ namespace osu.Game.Overlays.Comments
             base.LoadComplete();
             isVoted.Value = comment.IsVoted;
             votesCount.Value = comment.VotesCount;
-            isVoted.BindValueChanged(voted => background.Colour = voted.NewValue ? AccentColour : OsuColour.Gray(0.05f), true);
+            isVoted.BindValueChanged(voted => background.Colour = voted.NewValue ? AccentColour : colourProvider.Background6, true);
             votesCount.BindValueChanged(count => votesCounter.Text = $"+{count.NewValue}", true);
         }
 
@@ -109,7 +113,7 @@ namespace osu.Game.Overlays.Comments
                         }
                     }
                 },
-                sideNumber = new SpriteText
+                sideNumber = new OsuSpriteText
                 {
                     Anchor = Anchor.CentreLeft,
                     Origin = Anchor.CentreRight,
@@ -157,6 +161,9 @@ namespace osu.Game.Overlays.Comments
 
         private void updateDisplay()
         {
+            if (Action == null)
+                return;
+
             if (isVoted.Value)
             {
                 hoverLayer.FadeTo(IsHovered ? 1 : 0);

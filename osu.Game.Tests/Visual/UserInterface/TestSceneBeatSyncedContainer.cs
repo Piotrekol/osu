@@ -26,11 +26,6 @@ namespace osu.Game.Tests.Visual.UserInterface
     {
         private readonly NowPlayingOverlay np;
 
-        public override IReadOnlyList<Type> RequiredTypes => new[]
-        {
-            typeof(BeatSyncedContainer)
-        };
-
         [Cached]
         private MusicController musicController = new MusicController();
 
@@ -157,7 +152,7 @@ namespace osu.Game.Tests.Visual.UserInterface
 
             private TimingControlPoint getNextTimingPoint(TimingControlPoint current)
             {
-                if (timingPoints[timingPoints.Count - 1] == current)
+                if (timingPoints[^1] == current)
                     return current;
 
                 int index = timingPoints.IndexOf(current); // -1 means that this is a "default beat"
@@ -169,7 +164,7 @@ namespace osu.Game.Tests.Visual.UserInterface
             {
                 if (timingPoints.Count == 0) return 0;
 
-                if (timingPoints[timingPoints.Count - 1] == current)
+                if (timingPoints[^1] == current)
                     return (int)Math.Ceiling((Beatmap.Value.Track.Length - current.Time) / current.BeatLength);
 
                 return (int)Math.Ceiling((getNextTimingPoint(current).Time - current.Time) / current.BeatLength);
