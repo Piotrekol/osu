@@ -62,7 +62,7 @@ namespace osu.Game.Rulesets.Taiko.Difficulty
             return taikoDifficultyHitObjects;
         }
 
-        protected override DifficultyAttributes CreateDifficultyAttributes(IBeatmap beatmap, Mod[] mods, Skill[] skills, double clockRate)
+        protected override DifficultyAttributes CreateDifficultyAttributes(IBeatmap beatmap, Mod[] mods, Skill[] skills, double clockRate, double upTo = double.PositiveInfinity)
         {
             if (beatmap.HitObjects.Count == 0)
                 return new TaikoDifficultyAttributes { Mods = mods, Skills = skills };
@@ -96,7 +96,7 @@ namespace osu.Game.Rulesets.Taiko.Difficulty
                 ColourStrain = colourRating,
                 // Todo: This int cast is temporary to achieve 1:1 results with osu!stable, and should be removed in the future
                 GreatHitWindow = (int)hitWindows.WindowFor(HitResult.Great) / clockRate,
-                MaxCombo = beatmap.HitObjects.Count(h => h is Hit),
+                MaxCombo = beatmap.HitObjects.Where(h => h.StartTime <= upTo).Count(h => h is Hit),
                 Skills = skills
             };
         }

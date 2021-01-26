@@ -192,11 +192,11 @@ namespace osu.Game.Rulesets
         /// <param name="score">The score to be processed.</param>
         /// <returns>A performance calculator instance for the provided score.</returns>
         [CanBeNull]
-        public PerformanceCalculator CreatePerformanceCalculator(WorkingBeatmap beatmap, ScoreInfo score)
+        public (PerformanceCalculator PerformanceCalculator,List<TimedDifficultyAttributes> TimedDifficultyAttributeses) CreatePerformanceCalculator(WorkingBeatmap beatmap, ScoreInfo score)
         {
             var difficultyCalculator = CreateDifficultyCalculator(beatmap);
-            var difficultyAttributes = difficultyCalculator.Calculate(score.Mods);
-            return CreatePerformanceCalculator(difficultyAttributes, score);
+            var timedDifficultyAttributes = difficultyCalculator.CalculateTimed(score.Mods).ToList();
+            return (CreatePerformanceCalculator(timedDifficultyAttributes.Last().Attributes, score), timedDifficultyAttributes);
         }
 
         public virtual HitObjectComposer CreateHitObjectComposer() => null;

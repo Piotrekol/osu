@@ -27,9 +27,13 @@ namespace osu.Game.Rulesets.Osu.Difficulty
         {
         }
 
-        protected override DifficultyAttributes CreateDifficultyAttributes(IBeatmap beatmap, Mod[] mods, Skill[] skills, double clockRate)
+        protected override DifficultyAttributes CreateDifficultyAttributes(IBeatmap beatmap, Mod[] mods, Skill[] skills, double clockRate, double upTo = double.PositiveInfinity)
         {
-            if (beatmap.HitObjects.Count == 0)
+            var hitObjects = double.IsPositiveInfinity(upTo)
+                ? beatmap.HitObjects
+                : beatmap.HitObjects.Where(h => h.StartTime <= upTo).ToList();
+
+            if (hitObjects.Count == 0)
                 return new OsuDifficultyAttributes { Mods = mods, Skills = skills };
 
             double aimRating = Math.Sqrt(skills[0].DifficultyValue()) * difficulty_multiplier;
@@ -43,12 +47,12 @@ namespace osu.Game.Rulesets.Osu.Difficulty
             double hitWindowGreat = (int)(hitWindows.WindowFor(HitResult.Great)) / clockRate;
             double preempt = (int)BeatmapDifficulty.DifficultyRange(beatmap.BeatmapInfo.BaseDifficulty.ApproachRate, 1800, 1200, 450) / clockRate;
 
-            int maxCombo = beatmap.HitObjects.Count;
+            int maxCombo = hitObjects.Count;
             // Add the ticks + tail of the slider. 1 is subtracted because the head circle would be counted twice (once for the slider itself in the line above)
-            maxCombo += beatmap.HitObjects.OfType<Slider>().Sum(s => s.NestedHitObjects.Count - 1);
+            maxCombo += hitObjects.OfType<Slider>().Sum(s => s.NestedHitObjects.Count - 1);
 
-            int hitCirclesCount = beatmap.HitObjects.Count(h => h is HitCircle);
-            int spinnerCount = beatmap.HitObjects.Count(h => h is Spinner);
+            int hitCirclesCount = hitObjects.Count(h => h is HitCircle);
+            int spinnerCount = hitObjects.Count(h => h is Spinner);
 
             return new OsuDifficultyAttributes
             {

@@ -13,7 +13,7 @@ namespace osu.Game.Rulesets.Difficulty
 {
     public abstract class PerformanceCalculator
     {
-        protected readonly DifficultyAttributes Attributes;
+        protected DifficultyAttributes Attributes;
 
         protected readonly Ruleset Ruleset;
         protected readonly ScoreInfo Score;
@@ -38,5 +38,15 @@ namespace osu.Game.Rulesets.Difficulty
         }
 
         public abstract double Calculate(Dictionary<string, double> categoryDifficulty = null);
+
+        public double Calculate(double time, DifficultyAttributes attributes, Dictionary<string, double> categoryDifficulty = null)
+        {
+            var originalAttributes = Attributes;
+            Attributes = attributes;
+            var calculateResult = Calculate(categoryDifficulty);
+            Attributes = originalAttributes;
+
+            return calculateResult;
+        }
     }
 }
