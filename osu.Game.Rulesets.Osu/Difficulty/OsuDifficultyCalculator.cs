@@ -53,6 +53,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty
 
             int hitCirclesCount = hitObjects.Count(h => h is HitCircle);
             int spinnerCount = hitObjects.Count(h => h is Spinner);
+            int sliderCount = hitObjects.Count(h => h is Slider);
 
             return new OsuDifficultyAttributes
             {
@@ -65,6 +66,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty
                 MaxCombo = maxCombo,
                 HitCircleCount = hitCirclesCount,
                 SpinnerCount = spinnerCount,
+                SliderCount = sliderCount,
                 Skills = skills
             };
         }
