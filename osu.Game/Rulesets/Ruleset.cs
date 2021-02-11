@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Input.Bindings;
@@ -190,12 +191,14 @@ namespace osu.Game.Rulesets
         /// </summary>
         /// <param name="beatmap">The beatmap to use as a source for generating <see cref="DifficultyAttributes"/>.</param>
         /// <param name="score">The score to be processed.</param>
+        /// <param name="cancellationToken"></param>
         /// <returns>A performance calculator instance for the provided score.</returns>
         [CanBeNull]
-        public (PerformanceCalculator PerformanceCalculator,List<TimedDifficultyAttributes> TimedDifficultyAttributeses) CreatePerformanceCalculator(WorkingBeatmap beatmap, ScoreInfo score)
+        public (PerformanceCalculator PerformanceCalculator, List<TimedDifficultyAttributes> TimedDifficultyAttributeses
+            ) CreatePerformanceCalculator(WorkingBeatmap beatmap, ScoreInfo score, CancellationToken cancellationToken)
         {
             var difficultyCalculator = CreateDifficultyCalculator(beatmap);
-            var timedDifficultyAttributes = difficultyCalculator.CalculateTimed(score.Mods).ToList();
+            var timedDifficultyAttributes = difficultyCalculator.CalculateTimed(cancellationToken, score.Mods).ToList();
             return (CreatePerformanceCalculator(timedDifficultyAttributes.Last().Attributes, score), timedDifficultyAttributes);
         }
 

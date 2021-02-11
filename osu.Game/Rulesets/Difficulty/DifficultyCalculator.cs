@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using osu.Framework.Audio.Track;
 using osu.Framework.Extensions.IEnumerableExtensions;
 using osu.Game.Beatmaps;
@@ -35,9 +36,10 @@ namespace osu.Game.Rulesets.Difficulty
         /// </summary>
         /// <param name="mods">The mods that should be applied to the beatmap.</param>
         /// <returns>A structure describing the difficulty of the beatmap.</returns>
-        public DifficultyAttributes Calculate(params Mod[] mods) => CalculateTimed(mods).Last().Attributes;
+        public DifficultyAttributes Calculate(params Mod[] mods) => CalculateTimed(CancellationToken.None, mods).Last().Attributes;
 
-        public IEnumerable<TimedDifficultyAttributes> CalculateTimed(params Mod[] mods)
+        public IEnumerable<TimedDifficultyAttributes> CalculateTimed(CancellationToken cancellationToken,
+            params Mod[] mods)
         {
             mods = mods.Select(m => m.CreateCopy()).ToArray();
 
@@ -46,7 +48,7 @@ namespace osu.Game.Rulesets.Difficulty
             var track = new TrackVirtual(10000);
             mods.OfType<IApplicableToTrack>().ForEach(m => m.ApplyToTrack(track));
 
-            return calculate(playableBeatmap, mods, track.Rate);
+            return calculate(playableBeatmap, mods, track.Rate, cancellationToken);
         }
 
         /// <summary>
@@ -64,7 +66,8 @@ namespace osu.Game.Rulesets.Difficulty
             }
         }
 
-        private IEnumerable<TimedDifficultyAttributes> calculate(IBeatmap beatmap, Mod[] mods, double clockRate)
+        private IEnumerable<TimedDifficultyAttributes> calculate(IBeatmap beatmap, Mod[] mods, double clockRate,
+            CancellationToken cancellationToken)
         {
             var skills = CreateSkills(beatmap);
 
@@ -98,6 +101,8 @@ namespace osu.Game.Rulesets.Difficulty
 
                     currentSectionEnd += sectionLength;
                 }
+
+                cancellationToken.ThrowIfCancellationRequested();
 
                 foreach (Skill s in skills)
                     s.Process(h);
