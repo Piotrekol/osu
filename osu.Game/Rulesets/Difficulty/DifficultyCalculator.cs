@@ -38,6 +38,15 @@ namespace osu.Game.Rulesets.Difficulty
         /// <returns>A structure describing the difficulty of the beatmap.</returns>
         public DifficultyAttributes Calculate(params Mod[] mods) => CalculateTimed(CancellationToken.None, mods).Last().Attributes;
 
+        public IEnumerable<TimedDifficultyAttributes> CalculateTimed(IBeatmap playableBeatmap, CancellationToken cancellationToken,
+            params Mod[] mods)
+        {
+            var track = new TrackVirtual(10000);
+            mods.OfType<IApplicableToTrack>().ForEach(m => m.ApplyToTrack(track));
+
+            return calculate(playableBeatmap, mods, track.Rate, cancellationToken);
+        }
+
         public IEnumerable<TimedDifficultyAttributes> CalculateTimed(CancellationToken cancellationToken,
             params Mod[] mods)
         {
@@ -45,10 +54,7 @@ namespace osu.Game.Rulesets.Difficulty
 
             IBeatmap playableBeatmap = beatmap.GetPlayableBeatmap(ruleset.RulesetInfo, mods);
 
-            var track = new TrackVirtual(10000);
-            mods.OfType<IApplicableToTrack>().ForEach(m => m.ApplyToTrack(track));
-
-            return calculate(playableBeatmap, mods, track.Rate, cancellationToken);
+            return CalculateTimed(playableBeatmap, cancellationToken, mods);
         }
 
         /// <summary>

@@ -190,15 +190,17 @@ namespace osu.Game.Rulesets
         /// Optionally creates a <see cref="PerformanceCalculator"/> to generate performance data from the provided score.
         /// </summary>
         /// <param name="beatmap">The beatmap to use as a source for generating <see cref="DifficultyAttributes"/>.</param>
+        /// <param name="playableBeatmap"></param>
         /// <param name="score">The score to be processed.</param>
         /// <param name="cancellationToken"></param>
         /// <returns>A performance calculator instance for the provided score.</returns>
         [CanBeNull]
-        public (PerformanceCalculator PerformanceCalculator, List<TimedDifficultyAttributes> TimedDifficultyAttributeses
-            ) CreatePerformanceCalculator(WorkingBeatmap beatmap, ScoreInfo score, CancellationToken cancellationToken)
+        public (PerformanceCalculator PerformanceCalculator, List<TimedDifficultyAttributes> TimedDifficultyAttributes)
+            CreatePerformanceCalculator(WorkingBeatmap beatmap, IBeatmap playableBeatmap, ScoreInfo score,
+                CancellationToken cancellationToken)
         {
             var difficultyCalculator = CreateDifficultyCalculator(beatmap);
-            var timedDifficultyAttributes = difficultyCalculator.CalculateTimed(cancellationToken, score.Mods).ToList();
+            var timedDifficultyAttributes = difficultyCalculator.CalculateTimed(playableBeatmap, cancellationToken, score.Mods).ToList();
             return (CreatePerformanceCalculator(timedDifficultyAttributes.Last().Attributes, score), timedDifficultyAttributes);
         }
 
