@@ -39,7 +39,7 @@ namespace osu.Game.Rulesets.Difficulty.Skills
         /// <summary>
         /// The length of each strain section.
         /// </summary>
-        protected virtual int SectionLength => 400;
+        public virtual int SectionLength => 400;
 
         private double currentSectionPeak = 1; // We also keep track of the peak strain level in the current section.
 
