@@ -3,6 +3,7 @@
 
 using osu.Framework.Extensions.Color4Extensions;
 using osu.Game.Beatmaps;
+using osu.Game.Overlays;
 using osu.Game.Rulesets.Scoring;
 using osu.Game.Scoring;
 using osuTK.Graphics;
@@ -32,10 +33,10 @@ namespace osu.Game.Graphics
                     return Pink;
 
                 case DifficultyRating.Expert:
-                    return useLighterColour ? PurpleLight : Purple;
+                    return PurpleLight;
 
                 case DifficultyRating.ExpertPlus:
-                    return useLighterColour ? Gray9 : Gray0;
+                    return useLighterColour ? Gray9 : Color4Extensions.FromHex("#121415");
             }
         }
 
@@ -92,6 +93,18 @@ namespace osu.Game.Graphics
                 default:
                     return Color4.White;
             }
+        }
+
+        /// <summary>
+        /// Returns a foreground text colour that is supposed to contrast well with
+        /// the supplied <paramref name="backgroundColour"/>.
+        /// </summary>
+        public static Color4 ForegroundTextColourFor(Color4 backgroundColour)
+        {
+            // formula taken from the RGB->YIQ conversions: https://en.wikipedia.org/wiki/YIQ
+            // brightness here is equivalent to the Y component in the above colour model, which is a rough estimate of lightness.
+            float brightness = 0.299f * backgroundColour.R + 0.587f * backgroundColour.G + 0.114f * backgroundColour.B;
+            return Gray(brightness > 0.5f ? 0.2f : 0.9f);
         }
 
         // See https://github.com/ppy/osu-web/blob/master/resources/assets/less/colors.less
@@ -185,6 +198,19 @@ namespace osu.Game.Graphics
         public readonly Color4 GrayD = Color4Extensions.FromHex(@"ddd");
         public readonly Color4 GrayE = Color4Extensions.FromHex(@"eee");
         public readonly Color4 GrayF = Color4Extensions.FromHex(@"fff");
+
+        /// <summary>
+        /// Equivalent to <see cref="OverlayColourProvider.Lime"/>'s <see cref="OverlayColourProvider.Colour1"/>.
+        /// </summary>
+        public readonly Color4 Lime1 = Color4Extensions.FromHex(@"b2ff66");
+
+        /// <summary>
+        /// Equivalent to <see cref="OverlayColourProvider.Orange"/>'s <see cref="OverlayColourProvider.Colour1"/>.
+        /// </summary>
+        public readonly Color4 Orange1 = Color4Extensions.FromHex(@"ffd966");
+
+        // Content Background
+        public readonly Color4 B5 = Color4Extensions.FromHex(@"222a28");
 
         public readonly Color4 RedLighter = Color4Extensions.FromHex(@"ffeded");
         public readonly Color4 RedLight = Color4Extensions.FromHex(@"ed7787");

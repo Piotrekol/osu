@@ -8,11 +8,11 @@ namespace osu.Game.Rulesets.Taiko.Difficulty
 {
     public class TaikoDifficultyAttributes : DifficultyAttributes, IComparable<TaikoDifficultyAttributes>
     {
-        public double StaminaStrain;
-        public double RhythmStrain;
-        public double ColourStrain;
-        public double ApproachRate;
-        public double GreatHitWindow;
+        public double StaminaStrain { get; set; }
+        public double RhythmStrain { get; set; }
+        public double ColourStrain { get; set; }
+        public double ApproachRate { get; set; }
+        public double GreatHitWindow { get; set; }
 
         public override int CompareTo(DifficultyAttributes other)
         {

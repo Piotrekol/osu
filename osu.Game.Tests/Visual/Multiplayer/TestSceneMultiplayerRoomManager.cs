@@ -1,36 +1,40 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
 using NUnit.Framework;
-using osu.Framework.Graphics;
 using osu.Framework.Testing;
 using osu.Game.Online.Rooms;
+using osu.Game.Screens.OnlinePlay.Components;
+using osu.Game.Tests.Beatmaps;
+using osu.Game.Tests.Visual.OnlinePlay;
 
 namespace osu.Game.Tests.Visual.Multiplayer
 {
     [HeadlessTest]
-    public class TestSceneMultiplayerRoomManager : RoomTestScene
+    public class TestSceneMultiplayerRoomManager : MultiplayerTestScene
     {
-        private TestMultiplayerRoomContainer roomContainer;
-        private TestMultiplayerRoomManager roomManager => roomContainer.RoomManager;
+        protected override OnlinePlayTestSceneDependencies CreateOnlinePlayDependencies() => new TestDependencies();
+
+        public TestSceneMultiplayerRoomManager()
+            : base(false)
+        {
+        }
 
         [Test]
         public void TestPollsInitially()
         {
             AddStep("create room manager with a few rooms", () =>
             {
-                createRoomManager().With(d => d.OnLoadComplete += _ =>
-                {
-                    roomManager.CreateRoom(new Room { Name = { Value = "1" } });
-                    roomManager.PartRoom();
-                    roomManager.CreateRoom(new Room { Name = { Value = "2" } });
-                    roomManager.PartRoom();
-                    roomManager.ClearRooms();
-                });
+                RoomManager.CreateRoom(createRoom(r => r.Name.Value = "1"));
+                RoomManager.PartRoom();
+                RoomManager.CreateRoom(createRoom(r => r.Name.Value = "2"));
+                RoomManager.PartRoom();
+                RoomManager.ClearRooms();
             });
 
-            AddAssert("manager polled for rooms", () => roomManager.Rooms.Count == 2);
-            AddAssert("initial rooms received", () => roomManager.InitialRoomsReceived.Value);
+            AddAssert("manager polled for rooms", () => ((RoomManager)RoomManager).Rooms.Count == 2);
+            AddAssert("initial rooms received", () => RoomManager.InitialRoomsReceived.Value);
         }
 
         [Test]
@@ -38,19 +42,16 @@ namespace osu.Game.Tests.Visual.Multiplayer
         {
             AddStep("create room manager with a few rooms", () =>
             {
-                createRoomManager().With(d => d.OnLoadComplete += _ =>
-                {
-                    roomManager.CreateRoom(new Room());
-                    roomManager.PartRoom();
-                    roomManager.CreateRoom(new Room());
-                    roomManager.PartRoom();
-                });
+                RoomManager.CreateRoom(createRoom());
+                RoomManager.PartRoom();
+                RoomManager.CreateRoom(createRoom());
+                RoomManager.PartRoom();
             });
 
-            AddStep("disconnect", () => roomContainer.Client.Disconnect());
+            AddStep("disconnect", () => Client.Disconnect());
 
-            AddAssert("rooms cleared", () => roomManager.Rooms.Count == 0);
-            AddAssert("initial rooms not received", () => !roomManager.InitialRoomsReceived.Value);
+            AddAssert("rooms cleared", () => ((RoomManager)RoomManager).Rooms.Count == 0);
+            AddAssert("initial rooms not received", () => !RoomManager.InitialRoomsReceived.Value);
         }
 
         [Test]
@@ -58,20 +59,17 @@ namespace osu.Game.Tests.Visual.Multiplayer
         {
             AddStep("create room manager with a few rooms", () =>
             {
-                createRoomManager().With(d => d.OnLoadComplete += _ =>
-                {
-                    roomManager.CreateRoom(new Room());
-                    roomManager.PartRoom();
-                    roomManager.CreateRoom(new Room());
-                    roomManager.PartRoom();
-                });
+                RoomManager.CreateRoom(createRoom());
+                RoomManager.PartRoom();
+                RoomManager.CreateRoom(createRoom());
+                RoomManager.PartRoom();
             });
 
-            AddStep("disconnect", () => roomContainer.Client.Disconnect());
-            AddStep("connect", () => roomContainer.Client.Connect());
+            AddStep("disconnect", () => Client.Disconnect());
+            AddStep("connect", () => Client.Connect());
 
-            AddAssert("manager polled for rooms", () => roomManager.Rooms.Count == 2);
-            AddAssert("initial rooms received", () => roomManager.InitialRoomsReceived.Value);
+            AddAssert("manager polled for rooms", () => ((RoomManager)RoomManager).Rooms.Count == 2);
+            AddAssert("initial rooms received", () => RoomManager.InitialRoomsReceived.Value);
         }
 
         [Test]
@@ -79,15 +77,12 @@ namespace osu.Game.Tests.Visual.Multiplayer
         {
             AddStep("create room manager with a room", () =>
             {
-                createRoomManager().With(d => d.OnLoadComplete += _ =>
-                {
-                    roomManager.CreateRoom(new Room());
-                    roomManager.ClearRooms();
-                });
+                RoomManager.CreateRoom(createRoom());
+                RoomManager.ClearRooms();
             });
 
-            AddAssert("manager not polled for rooms", () => roomManager.Rooms.Count == 0);
-            AddAssert("initial rooms not received", () => !roomManager.InitialRoomsReceived.Value);
+            AddAssert("manager not polled for rooms", () => ((RoomManager)RoomManager).Rooms.Count == 0);
+            AddAssert("initial rooms not received", () => !RoomManager.InitialRoomsReceived.Value);
         }
 
         [Test]
@@ -95,13 +90,10 @@ namespace osu.Game.Tests.Visual.Multiplayer
         {
             AddStep("create room manager with a room", () =>
             {
-                createRoomManager().With(d => d.OnLoadComplete += _ =>
-                {
-                    roomManager.CreateRoom(new Room());
-                });
+                RoomManager.CreateRoom(createRoom());
             });
 
-            AddAssert("multiplayer room joined", () => roomContainer.Client.Room != null);
+            AddUntilStep("multiplayer room joined", () => Client.Room != null);
         }
 
         [Test]
@@ -109,14 +101,11 @@ namespace osu.Game.Tests.Visual.Multiplayer
         {
             AddStep("create room manager with a room", () =>
             {
-                createRoomManager().With(d => d.OnLoadComplete += _ =>
-                {
-                    roomManager.CreateRoom(new Room());
-                    roomManager.PartRoom();
-                });
+                RoomManager.CreateRoom(createRoom());
+                RoomManager.PartRoom();
             });
 
-            AddAssert("multiplayer room parted", () => roomContainer.Client.Room == null);
+            AddAssert("multiplayer room parted", () => Client.Room == null);
         }
 
         [Test]
@@ -124,30 +113,45 @@ namespace osu.Game.Tests.Visual.Multiplayer
         {
             AddStep("create room manager with a room", () =>
             {
-                createRoomManager().With(d => d.OnLoadComplete += _ =>
-                {
-                    var r = new Room();
-                    roomManager.CreateRoom(r);
-                    roomManager.PartRoom();
-                    roomManager.JoinRoom(r);
-                });
+                var r = createRoom();
+                RoomManager.CreateRoom(r);
+                RoomManager.PartRoom();
+                RoomManager.JoinRoom(r);
             });
 
-            AddAssert("multiplayer room joined", () => roomContainer.Client.Room != null);
+            AddUntilStep("multiplayer room joined", () => Client.Room != null);
         }
 
-        private TestMultiplayerRoomManager createRoomManager()
+        private Room createRoom(Action<Room> initFunc = null)
         {
-            Child = roomContainer = new TestMultiplayerRoomContainer
+            var room = new Room
             {
-                RoomManager =
+                Name =
                 {
-                    TimeBetweenListingPolls = { Value = 1 },
-                    TimeBetweenSelectionPolls = { Value = 1 }
+                    Value = "test room"
+                },
+                Playlist =
+                {
+                    new PlaylistItem
+                    {
+                        Beatmap = { Value = new TestBeatmap(Ruleset.Value).BeatmapInfo },
+                        Ruleset = { Value = Ruleset.Value }
+                    }
                 }
             };
 
-            return roomManager;
+            initFunc?.Invoke(room);
+            return room;
+        }
+
+        private class TestDependencies : MultiplayerTestSceneDependencies
+        {
+            public TestDependencies()
+            {
+                // Need to set these values as early as possible.
+                RoomManager.TimeBetweenListingPolls.Value = 1;
+                RoomManager.TimeBetweenSelectionPolls.Value = 1;
+            }
         }
     }
 }

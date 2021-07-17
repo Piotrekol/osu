@@ -44,8 +44,12 @@ namespace osu.Game.Beatmaps
         /// <summary>
         /// Returns statistics for the <see cref="HitObjects"/> contained in this beatmap.
         /// </summary>
-        /// <returns></returns>
         IEnumerable<BeatmapStatistic> GetStatistics();
+
+        /// <summary>
+        /// Finds the most common beat length represented by the control points in this beatmap.
+        /// </summary>
+        double GetMostCommonBeatLength();
 
         /// <summary>
         /// Creates a shallow-clone of this beatmap and returns it.

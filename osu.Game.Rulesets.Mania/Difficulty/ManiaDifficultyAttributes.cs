@@ -8,8 +8,8 @@ namespace osu.Game.Rulesets.Mania.Difficulty
 {
     public class ManiaDifficultyAttributes : DifficultyAttributes, IComparable<ManiaDifficultyAttributes>
     {
-        public double GreatHitWindow;
-        public double ScoreMultiplier;
+        public double GreatHitWindow { get; set; }
+        public double ScoreMultiplier { get; set; }
 
         public override int CompareTo(DifficultyAttributes other)
         {

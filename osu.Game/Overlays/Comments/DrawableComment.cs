@@ -9,7 +9,6 @@ using osuTK;
 using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Users.Drawables;
 using osu.Game.Graphics.Containers;
-using osu.Game.Utils;
 using osu.Framework.Graphics.Cursor;
 using osu.Framework.Bindables;
 using System.Linq;
@@ -21,6 +20,7 @@ using System;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Extensions.IEnumerableExtensions;
 using System.Collections.Specialized;
+using osu.Framework.Localisation;
 using osu.Game.Overlays.Comments.Buttons;
 
 namespace osu.Game.Overlays.Comments
@@ -245,11 +245,32 @@ namespace osu.Game.Overlays.Comments
 
             if (Comment.EditedAt.HasValue)
             {
-                info.Add(new OsuSpriteText
+                var font = OsuFont.GetFont(size: 12, weight: FontWeight.Regular);
+                var colour = colourProvider.Foreground1;
+
+                info.Add(new FillFlowContainer
                 {
-                    Font = OsuFont.GetFont(size: 12, weight: FontWeight.Regular),
-                    Text = $@"edited {HumanizerUtils.Humanize(Comment.EditedAt.Value)} by {Comment.EditedUser.Username}",
-                    Colour = colourProvider.Foreground1
+                    AutoSizeAxes = Axes.Both,
+                    Children = new Drawable[]
+                    {
+                        new OsuSpriteText
+                        {
+                            Font = font,
+                            Text = "edited ",
+                            Colour = colour
+                        },
+                        new DrawableDate(Comment.EditedAt.Value)
+                        {
+                            Font = font,
+                            Colour = colour
+                        },
+                        new OsuSpriteText
+                        {
+                            Font = font,
+                            Text = $@" by {Comment.EditedUser.Username}",
+                            Colour = colour
+                        },
+                    }
                 });
             }
 
@@ -375,7 +396,7 @@ namespace osu.Game.Overlays.Comments
 
         private class ParentUsername : FillFlowContainer, IHasTooltip
         {
-            public string TooltipText => getParentMessage();
+            public LocalisableString TooltipText => getParentMessage();
 
             private readonly Comment parentComment;
 
@@ -407,7 +428,7 @@ namespace osu.Game.Overlays.Comments
                 if (parentComment == null)
                     return string.Empty;
 
-                return parentComment.HasMessage ? parentComment.Message : parentComment.IsDeleted ? @"deleted" : string.Empty;
+                return parentComment.HasMessage ? parentComment.Message : parentComment.IsDeleted ? "deleted" : string.Empty;
             }
         }
     }

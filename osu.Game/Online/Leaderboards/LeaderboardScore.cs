@@ -13,6 +13,7 @@ using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Graphics.UserInterface;
 using osu.Framework.Input.Events;
+using osu.Framework.Localisation;
 using osu.Game.Graphics;
 using osu.Game.Graphics.Containers;
 using osu.Game.Graphics.Sprites;
@@ -60,6 +61,9 @@ namespace osu.Game.Online.Leaderboards
 
         [Resolved(CanBeNull = true)]
         private SongSelect songSelect { get; set; }
+
+        [Resolved]
+        private ScoreManager scoreManager { get; set; }
 
         public LeaderboardScore(ScoreInfo score, int? rank, bool allowHighlight = true)
         {
@@ -244,7 +248,7 @@ namespace osu.Game.Online.Leaderboards
             this.FadeIn(200);
             content.MoveToY(0, 800, Easing.OutQuint);
 
-            using (BeginDelayedSequence(100, true))
+            using (BeginDelayedSequence(100))
             {
                 avatar.FadeIn(300, Easing.OutQuint);
                 nameLabel.FadeIn(350, Easing.OutQuint);
@@ -252,12 +256,12 @@ namespace osu.Game.Online.Leaderboards
                 avatar.MoveToX(0, 300, Easing.OutQuint);
                 nameLabel.MoveToX(0, 350, Easing.OutQuint);
 
-                using (BeginDelayedSequence(250, true))
+                using (BeginDelayedSequence(250))
                 {
                     scoreLabel.FadeIn(200);
                     scoreRank.FadeIn(200);
 
-                    using (BeginDelayedSequence(50, true))
+                    using (BeginDelayedSequence(50))
                     {
                         var drawables = new Drawable[] { flagBadgeContainer, modsContainer }.Concat(statisticsLabels).ToArray();
                         for (int i = 0; i < drawables.Length; i++)
@@ -292,7 +296,7 @@ namespace osu.Game.Online.Leaderboards
 
             public override bool Contains(Vector2 screenSpacePos) => content.Contains(screenSpacePos);
 
-            public string TooltipText { get; }
+            public LocalisableString TooltipText { get; }
 
             public ScoreComponentLabel(LeaderboardScoreStatistic statistic)
             {
@@ -362,7 +366,7 @@ namespace osu.Game.Online.Leaderboards
                 };
             }
 
-            public string TooltipText { get; }
+            public LocalisableString TooltipText { get; }
         }
 
         public class LeaderboardScoreStatistic
@@ -387,6 +391,9 @@ namespace osu.Game.Online.Leaderboards
 
                 if (score.Mods.Length > 0 && modsContainer.Any(s => s.IsHovered) && songSelect != null)
                     items.Add(new OsuMenuItem("Use these mods", MenuItemType.Highlighted, () => songSelect.Mods.Value = score.Mods));
+
+                if (score.Files?.Count > 0)
+                    items.Add(new OsuMenuItem("Export", MenuItemType.Standard, () => scoreManager.Export(score)));
 
                 if (score.ID != 0)
                     items.Add(new OsuMenuItem("Delete", MenuItemType.Destructive, () => dialogOverlay?.Push(new LocalScoreDeleteDialog(score))));

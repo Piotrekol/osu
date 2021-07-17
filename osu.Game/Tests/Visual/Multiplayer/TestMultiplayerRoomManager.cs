@@ -11,11 +11,15 @@ using osu.Game.Online.API.Requests;
 using osu.Game.Online.Rooms;
 using osu.Game.Rulesets.Scoring;
 using osu.Game.Scoring;
+using osu.Game.Screens.OnlinePlay.Components;
 using osu.Game.Screens.OnlinePlay.Lounge.Components;
 using osu.Game.Screens.OnlinePlay.Multiplayer;
 
 namespace osu.Game.Tests.Visual.Multiplayer
 {
+    /// <summary>
+    /// A <see cref="RoomManager"/> for use in multiplayer test scenes. Should generally not be used by itself outside of a <see cref="MultiplayerTestScene"/>.
+    /// </summary>
     public class TestMultiplayerRoomManager : MultiplayerRoomManager
     {
         [Resolved]
@@ -27,14 +31,14 @@ namespace osu.Game.Tests.Visual.Multiplayer
         [Cached]
         public readonly Bindable<FilterCriteria> Filter = new Bindable<FilterCriteria>(new FilterCriteria());
 
-        private readonly List<Room> rooms = new List<Room>();
+        public new readonly List<Room> Rooms = new List<Room>();
 
-        protected override void LoadComplete()
+        [BackgroundDependencyLoader]
+        private void load()
         {
-            base.LoadComplete();
-
             int currentScoreId = 0;
             int currentRoomId = 0;
+            int currentPlaylistItemId = 0;
 
             ((DummyAPIAccess)api).HandleRequest = req =>
             {
@@ -46,22 +50,25 @@ namespace osu.Game.Tests.Visual.Multiplayer
                         createdRoom.CopyFrom(createRoomRequest.Room);
                         createdRoom.RoomID.Value ??= currentRoomId++;
 
-                        rooms.Add(createdRoom);
+                        for (int i = 0; i < createdRoom.Playlist.Count; i++)
+                            createdRoom.Playlist[i].ID = currentPlaylistItemId++;
+
+                        Rooms.Add(createdRoom);
                         createRoomRequest.TriggerSuccess(createdRoom);
-                        break;
+                        return true;
 
                     case JoinRoomRequest joinRoomRequest:
                         joinRoomRequest.TriggerSuccess();
-                        break;
+                        return true;
 
                     case PartRoomRequest partRoomRequest:
                         partRoomRequest.TriggerSuccess();
-                        break;
+                        return true;
 
                     case GetRoomsRequest getRoomsRequest:
                         var roomsWithoutParticipants = new List<Room>();
 
-                        foreach (var r in rooms)
+                        foreach (var r in Rooms)
                         {
                             var newRoom = new Room();
 
@@ -72,11 +79,11 @@ namespace osu.Game.Tests.Visual.Multiplayer
                         }
 
                         getRoomsRequest.TriggerSuccess(roomsWithoutParticipants);
-                        break;
+                        return true;
 
                     case GetRoomRequest getRoomRequest:
-                        getRoomRequest.TriggerSuccess(rooms.Single(r => r.RoomID.Value == getRoomRequest.RoomId));
-                        break;
+                        getRoomRequest.TriggerSuccess(Rooms.Single(r => r.RoomID.Value == getRoomRequest.RoomId));
+                        return true;
 
                     case GetBeatmapSetRequest getBeatmapSetRequest:
                         var onlineReq = new GetBeatmapSetRequest(getBeatmapSetRequest.ID, getBeatmapSetRequest.Type);
@@ -85,11 +92,11 @@ namespace osu.Game.Tests.Visual.Multiplayer
 
                         // Get the online API from the game's dependencies.
                         game.Dependencies.Get<IAPIProvider>().Queue(onlineReq);
-                        break;
+                        return true;
 
                     case CreateRoomScoreRequest createRoomScoreRequest:
                         createRoomScoreRequest.TriggerSuccess(new APIScoreToken { ID = 1 });
-                        break;
+                        return true;
 
                     case SubmitRoomScoreRequest submitRoomScoreRequest:
                         submitRoomScoreRequest.TriggerSuccess(new MultiplayerScore
@@ -104,8 +111,10 @@ namespace osu.Game.Tests.Visual.Multiplayer
                             User = api.LocalUser.Value,
                             Statistics = new Dictionary<HitResult, int>()
                         });
-                        break;
+                        return true;
                 }
+
+                return false;
             };
         }
 

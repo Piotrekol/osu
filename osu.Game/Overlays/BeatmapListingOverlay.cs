@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using osu.Framework.Allocation;
 using osu.Framework.Extensions.IEnumerableExtensions;
+using osu.Framework.Localisation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
@@ -15,98 +16,93 @@ using osu.Framework.Graphics.Textures;
 using osu.Framework.Input.Events;
 using osu.Game.Audio;
 using osu.Game.Beatmaps;
-using osu.Game.Graphics.Containers;
+using osu.Game.Graphics;
 using osu.Game.Graphics.Sprites;
-using osu.Game.Graphics.UserInterface;
+using osu.Game.Graphics.Containers;
 using osu.Game.Overlays.BeatmapListing;
 using osu.Game.Overlays.BeatmapListing.Panels;
+using osu.Game.Resources.Localisation.Web;
 using osuTK;
+using osuTK.Graphics;
 
 namespace osu.Game.Overlays
 {
-    public class BeatmapListingOverlay : FullscreenOverlay<BeatmapListingHeader>
+    public class BeatmapListingOverlay : OnlineOverlay<BeatmapListingHeader>
     {
         [Resolved]
         private PreviewTrackManager previewTrackManager { get; set; }
 
         private Drawable currentContent;
-        private LoadingLayer loadingLayer;
         private Container panelTarget;
         private FillFlowContainer<BeatmapPanel> foundContent;
         private NotFoundDrawable notFoundContent;
-
-        private OverlayScrollContainer resultScrollContainer;
+        private SupporterRequiredDrawable supporterRequiredContent;
+        private BeatmapListingFilterControl filterControl;
 
         public BeatmapListingOverlay()
-            : base(OverlayColourScheme.Blue, new BeatmapListingHeader())
+            : base(OverlayColourScheme.Blue)
         {
         }
-
-        private BeatmapListingFilterControl filterControl;
 
         [BackgroundDependencyLoader]
         private void load()
         {
-            Children = new Drawable[]
+            Child = new FillFlowContainer
             {
-                new Box
+                RelativeSizeAxes = Axes.X,
+                AutoSizeAxes = Axes.Y,
+                Direction = FillDirection.Vertical,
+                Children = new Drawable[]
                 {
-                    RelativeSizeAxes = Axes.Both,
-                    Colour = ColourProvider.Background6
-                },
-                resultScrollContainer = new OverlayScrollContainer
-                {
-                    RelativeSizeAxes = Axes.Both,
-                    ScrollbarVisible = false,
-                    Child = new ReverseChildIDFillFlowContainer<Drawable>
+                    filterControl = new BeatmapListingFilterControl
+                    {
+                        TypingStarted = onTypingStarted,
+                        SearchStarted = onSearchStarted,
+                        SearchFinished = onSearchFinished,
+                    },
+                    new Container
                     {
                         AutoSizeAxes = Axes.Y,
                         RelativeSizeAxes = Axes.X,
-                        Direction = FillDirection.Vertical,
                         Children = new Drawable[]
                         {
-                            Header,
-                            filterControl = new BeatmapListingFilterControl
+                            new Box
                             {
-                                TypingStarted = onTypingStarted,
-                                SearchStarted = onSearchStarted,
-                                SearchFinished = onSearchFinished,
+                                RelativeSizeAxes = Axes.Both,
+                                Colour = ColourProvider.Background4,
                             },
-                            new Container
+                            panelTarget = new Container
                             {
                                 AutoSizeAxes = Axes.Y,
                                 RelativeSizeAxes = Axes.X,
+                                Padding = new MarginPadding { Horizontal = 20 },
                                 Children = new Drawable[]
                                 {
-                                    new Box
-                                    {
-                                        RelativeSizeAxes = Axes.Both,
-                                        Colour = ColourProvider.Background4,
-                                    },
-                                    panelTarget = new Container
-                                    {
-                                        AutoSizeAxes = Axes.Y,
-                                        RelativeSizeAxes = Axes.X,
-                                        Padding = new MarginPadding { Horizontal = 20 },
-                                        Children = new Drawable[]
-                                        {
-                                            foundContent = new FillFlowContainer<BeatmapPanel>(),
-                                            notFoundContent = new NotFoundDrawable(),
-                                        }
-                                    }
-                                },
-                            },
-                        }
+                                    foundContent = new FillFlowContainer<BeatmapPanel>(),
+                                    notFoundContent = new NotFoundDrawable(),
+                                    supporterRequiredContent = new SupporterRequiredDrawable(),
+                                }
+                            }
+                        },
                     },
-                },
-                loadingLayer = new LoadingLayer(true)
+                }
             };
         }
+
+        public void ShowWithSearch(string query)
+        {
+            filterControl.Search(query);
+            Show();
+        }
+
+        protected override BeatmapListingHeader CreateHeader() => new BeatmapListingHeader();
+
+        protected override Color4 BackgroundColour => ColourProvider.Background6;
 
         private void onTypingStarted()
         {
             // temporary until the textbox/header is updated to always stay on screen.
-            resultScrollContainer.ScrollToStart();
+            ScrollFlow.ScrollToStart();
         }
 
         protected override void OnFocus(FocusEvent e)
@@ -125,14 +121,21 @@ namespace osu.Game.Overlays
             previewTrackManager.StopAnyPlaying(this);
 
             if (panelTarget.Any())
-                loadingLayer.Show();
+                Loading.Show();
         }
 
         private Task panelLoadDelegate;
 
-        private void onSearchFinished(List<BeatmapSetInfo> beatmaps)
+        private void onSearchFinished(BeatmapListingFilterControl.SearchResult searchResult)
         {
-            var newPanels = beatmaps.Select<BeatmapSetInfo, BeatmapPanel>(b => new GridBeatmapPanel(b)
+            if (searchResult.Type == BeatmapListingFilterControl.SearchResultType.SupporterOnlyFilters)
+            {
+                supporterRequiredContent.UpdateText(searchResult.SupporterOnlyFiltersUsed);
+                addContentToPlaceholder(supporterRequiredContent);
+                return;
+            }
+
+            var newPanels = searchResult.Results.Select<BeatmapSetInfo, BeatmapPanel>(b => new GridBeatmapPanel(b)
             {
                 Anchor = Anchor.TopCentre,
                 Origin = Anchor.TopCentre,
@@ -143,7 +146,7 @@ namespace osu.Game.Overlays
                 //No matches case
                 if (!newPanels.Any())
                 {
-                    LoadComponentAsync(notFoundContent, addContentToPlaceholder, (cancellationToken = new CancellationTokenSource()).Token);
+                    addContentToPlaceholder(notFoundContent);
                     return;
                 }
 
@@ -173,7 +176,7 @@ namespace osu.Game.Overlays
 
         private void addContentToPlaceholder(Drawable content)
         {
-            loadingLayer.Hide();
+            Loading.Hide();
             lastFetchDisplayedTime = Time.Current;
 
             if (content == currentContent)
@@ -185,9 +188,9 @@ namespace osu.Game.Overlays
             {
                 var transform = lastContent.FadeOut(100, Easing.OutQuint);
 
-                if (lastContent == notFoundContent)
+                if (lastContent == notFoundContent || lastContent == supporterRequiredContent)
                 {
-                    // not found display may be used multiple times, so don't expire/dispose it.
+                    // the placeholders may be used multiple times, so don't expire/dispose them.
                     transform.Schedule(() => panelTarget.Remove(lastContent));
                 }
                 else
@@ -248,10 +251,71 @@ namespace osu.Game.Overlays
                         {
                             Anchor = Anchor.Centre,
                             Origin = Anchor.Centre,
-                            Text = @"... nope, nothing found.",
+                            Text = BeatmapsStrings.ListingSearchNotFoundQuote,
                         }
                     }
                 });
+            }
+        }
+
+        // TODO: localisation requires Text/LinkFlowContainer support for localising strings with links inside
+        // (https://github.com/ppy/osu-framework/issues/4530)
+        public class SupporterRequiredDrawable : CompositeDrawable
+        {
+            private LinkFlowContainer supporterRequiredText;
+
+            public SupporterRequiredDrawable()
+            {
+                RelativeSizeAxes = Axes.X;
+                Height = 225;
+                Alpha = 0;
+            }
+
+            [BackgroundDependencyLoader]
+            private void load(TextureStore textures)
+            {
+                AddInternal(new FillFlowContainer
+                {
+                    Anchor = Anchor.Centre,
+                    Origin = Anchor.Centre,
+                    RelativeSizeAxes = Axes.Y,
+                    AutoSizeAxes = Axes.X,
+                    Direction = FillDirection.Horizontal,
+                    Children = new Drawable[]
+                    {
+                        new Sprite
+                        {
+                            Anchor = Anchor.Centre,
+                            Origin = Anchor.Centre,
+                            RelativeSizeAxes = Axes.Both,
+                            FillMode = FillMode.Fit,
+                            Texture = textures.Get(@"Online/supporter-required"),
+                        },
+                        supporterRequiredText = new LinkFlowContainer
+                        {
+                            Anchor = Anchor.Centre,
+                            Origin = Anchor.Centre,
+                            AutoSizeAxes = Axes.Both,
+                            Margin = new MarginPadding { Bottom = 10 },
+                        },
+                    }
+                });
+            }
+
+            public void UpdateText(List<LocalisableString> filters)
+            {
+                supporterRequiredText.Clear();
+
+                supporterRequiredText.AddText(
+                    BeatmapsStrings.ListingSearchSupporterFilterQuoteDefault(string.Join(" and ", filters), "").ToString(),
+                    t =>
+                    {
+                        t.Font = OsuFont.GetFont(size: 16);
+                        t.Colour = Colour4.White;
+                    }
+                );
+
+                supporterRequiredText.AddLink(BeatmapsStrings.ListingSearchSupporterFilterQuoteLinkText.ToString(), @"/store/products/supporter-tag");
             }
         }
 
@@ -267,7 +331,7 @@ namespace osu.Game.Overlays
 
             bool shouldShowMore = panelLoadDelegate?.IsCompleted != false
                                   && Time.Current - lastFetchDisplayedTime > time_between_fetches
-                                  && (resultScrollContainer.ScrollableExtent > 0 && resultScrollContainer.IsScrolledToEnd(pagination_scroll_distance));
+                                  && (ScrollFlow.ScrollableExtent > 0 && ScrollFlow.IsScrolledToEnd(pagination_scroll_distance));
 
             if (shouldShowMore)
                 filterControl.FetchNextPage();

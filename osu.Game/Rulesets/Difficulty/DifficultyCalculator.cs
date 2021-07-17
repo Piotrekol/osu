@@ -17,11 +17,6 @@ namespace osu.Game.Rulesets.Difficulty
 {
     public abstract class DifficultyCalculator
     {
-        /// <summary>
-        /// The length of each strain section.
-        /// </summary>
-        protected virtual int SectionLength => 400;
-
         private readonly Ruleset ruleset;
         private readonly WorkingBeatmap beatmap;
 
@@ -75,8 +70,8 @@ namespace osu.Game.Rulesets.Difficulty
         private IEnumerable<TimedDifficultyAttributes> calculate(IBeatmap beatmap, Mod[] mods, double clockRate,
             CancellationToken cancellationToken)
         {
-            var skills = CreateSkills(beatmap);
-            TimedDifficultyAttributes lastTimedAttributes;
+            var skills = CreateSkills(beatmap, mods, clockRate);
+
             if (!beatmap.HitObjects.Any())
             {
                 yield return new TimedDifficultyAttributes(0, CreateDifficultyAttributes(beatmap, mods, skills, clockRate));
@@ -85,46 +80,15 @@ namespace osu.Game.Rulesets.Difficulty
 
             var difficultyHitObjects = SortObjects(CreateDifficultyHitObjects(beatmap, clockRate)).ToList();
 
-            double sectionLength = SectionLength * clockRate;
-
-            // The first object doesn't generate a strain, so we begin with an incremented section end
-            double currentSectionEnd = Math.Ceiling(beatmap.HitObjects.First().StartTime / sectionLength) * sectionLength;
-
-            //Generate strain for start section of beatmap
-            double startSectionEnd = currentSectionEnd - sectionLength;
-            yield return lastTimedAttributes = new TimedDifficultyAttributes(startSectionEnd, CreateDifficultyAttributes(beatmap, mods, skills, clockRate, startSectionEnd));
-
-            foreach (DifficultyHitObject h in difficultyHitObjects)
+            foreach (var hitObject in difficultyHitObjects)
             {
-                while (h.BaseObject.StartTime > currentSectionEnd)
+                foreach (var skill in skills)
                 {
-                    foreach (Skill s in skills)
-                    {
-                        s.SaveCurrentPeak();
-                        s.StartNewSectionFrom(currentSectionEnd);
-                    }
-
-                    var timedAttributes = new TimedDifficultyAttributes(currentSectionEnd, CreateDifficultyAttributes(beatmap, mods, skills, clockRate, currentSectionEnd));
-                    //Don't generate same attributes more than once in a row(breaks, sliders with spaced ticks)
-                    if (timedAttributes.Attributes.CompareTo(lastTimedAttributes.Attributes) != 0)
-                    {
-                        yield return lastTimedAttributes = timedAttributes;
-                    }
-
-                    currentSectionEnd += sectionLength;
+                    skill.ProcessInternal(hitObject);
                 }
-
-                cancellationToken.ThrowIfCancellationRequested();
-
-                foreach (Skill s in skills)
-                    s.Process(h);
             }
 
-            // The peak strain will not be saved for the last section in the above loop
-            foreach (Skill s in skills)
-                s.SaveCurrentPeak();
-
-            yield return new TimedDifficultyAttributes(currentSectionEnd, CreateDifficultyAttributes(beatmap, mods, skills, clockRate));
+            return CreateDifficultyAttributes(beatmap, mods, skills, clockRate);
         }
 
         /// <summary>
@@ -230,7 +194,9 @@ namespace osu.Game.Rulesets.Difficulty
         /// Creates the <see cref="Skill"/>s to calculate the difficulty of an <see cref="IBeatmap"/>.
         /// </summary>
         /// <param name="beatmap">The <see cref="IBeatmap"/> whose difficulty will be calculated.</param>
+        /// <param name="mods">Mods to calculate difficulty with.</param>
+        /// <param name="clockRate">Clockrate to calculate difficulty with.</param>
         /// <returns>The <see cref="Skill"/>s.</returns>
-        protected abstract Skill[] CreateSkills(IBeatmap beatmap);
+        protected abstract Skill[] CreateSkills(IBeatmap beatmap, Mod[] mods, double clockRate);
     }
 }

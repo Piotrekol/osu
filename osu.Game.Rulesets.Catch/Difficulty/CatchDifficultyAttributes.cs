@@ -8,7 +8,7 @@ namespace osu.Game.Rulesets.Catch.Difficulty
 {
     public class CatchDifficultyAttributes : DifficultyAttributes, IComparable<CatchDifficultyAttributes>
     {
-        public double ApproachRate;
+        public double ApproachRate { get; set; }
 
         public override int CompareTo(DifficultyAttributes other)
         {

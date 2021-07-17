@@ -14,6 +14,7 @@ using System;
 using System.Linq;
 using osu.Framework.Graphics.Cursor;
 using osu.Framework.Input.Events;
+using osu.Framework.Localisation;
 using osu.Game.Graphics;
 using osu.Game.Graphics.UserInterface;
 
@@ -34,7 +35,7 @@ namespace osu.Game.Overlays.Mods
         /// </summary>
         public Action<Mod> SelectionChanged;
 
-        public string TooltipText => (SelectedMod?.Description ?? Mods.FirstOrDefault()?.Description) ?? string.Empty;
+        public LocalisableString TooltipText => (SelectedMod?.Description ?? Mods.FirstOrDefault()?.Description) ?? string.Empty;
 
         private const Easing mod_switch_easing = Easing.InOutSine;
         private const double mod_switch_duration = 120;
@@ -46,8 +47,9 @@ namespace osu.Game.Overlays.Mods
         /// Change the selected mod index of this button.
         /// </summary>
         /// <param name="newIndex">The new index.</param>
+        /// <param name="resetSettings">Whether any settings applied to the mod should be reset on selection.</param>
         /// <returns>Whether the selection changed.</returns>
-        private bool changeSelectedIndex(int newIndex)
+        private bool changeSelectedIndex(int newIndex, bool resetSettings = true)
         {
             if (newIndex == selectedIndex) return false;
 
@@ -69,6 +71,9 @@ namespace osu.Game.Overlays.Mods
 
             Mod newSelection = SelectedMod ?? Mods[0];
 
+            if (resetSettings)
+                newSelection.ResetSettingsToDefaults();
+
             Schedule(() =>
             {
                 if (beforeSelected != Selected)
@@ -86,7 +91,7 @@ namespace osu.Game.Overlays.Mods
 
                     backgroundIcon.Mod = newSelection;
 
-                    using (BeginDelayedSequence(mod_switch_duration, true))
+                    using (BeginDelayedSequence(mod_switch_duration))
                     {
                         foregroundIcon
                             .RotateTo(-rotate_angle * direction)
@@ -209,11 +214,17 @@ namespace osu.Game.Overlays.Mods
             Deselect();
         }
 
-        public bool SelectAt(int index)
+        /// <summary>
+        /// Select the mod at the provided index.
+        /// </summary>
+        /// <param name="index">The index to select.</param>
+        /// <param name="resetSettings">Whether any settings applied to the mod should be reset on selection.</param>
+        /// <returns>Whether the selection changed.</returns>
+        public bool SelectAt(int index, bool resetSettings = true)
         {
             if (!Mods[index].HasImplementation) return false;
 
-            changeSelectedIndex(index);
+            changeSelectedIndex(index, resetSettings);
             return true;
         }
 
@@ -292,7 +303,7 @@ namespace osu.Game.Overlays.Mods
                     Anchor = Anchor.TopCentre,
                     Font = OsuFont.GetFont(size: 18)
                 },
-                new HoverClickSounds(buttons: new[] { MouseButton.Left, MouseButton.Right })
+                new HoverSounds()
             };
 
             Mod = mod;

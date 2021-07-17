@@ -101,7 +101,7 @@ namespace osu.Game.Screens.Ranking.Expanded
                                 {
                                     Anchor = Anchor.TopCentre,
                                     Origin = Anchor.TopCentre,
-                                    Text = new LocalisedString((metadata.TitleUnicode, metadata.Title)),
+                                    Text = new RomanisableString(metadata.TitleUnicode, metadata.Title),
                                     Font = OsuFont.Torus.With(size: 20, weight: FontWeight.SemiBold),
                                     MaxWidth = ScorePanel.EXPANDED_WIDTH - padding * 2,
                                     Truncate = true,
@@ -110,7 +110,7 @@ namespace osu.Game.Screens.Ranking.Expanded
                                 {
                                     Anchor = Anchor.TopCentre,
                                     Origin = Anchor.TopCentre,
-                                    Text = new LocalisedString((metadata.ArtistUnicode, metadata.Artist)),
+                                    Text = new RomanisableString(metadata.ArtistUnicode, metadata.Artist),
                                     Font = OsuFont.Torus.With(size: 14, weight: FontWeight.SemiBold),
                                     MaxWidth = ScorePanel.EXPANDED_WIDTH - padding * 2,
                                     Truncate = true,
@@ -242,7 +242,6 @@ namespace osu.Game.Screens.Ranking.Expanded
                 {
                     Anchor = Anchor.CentreLeft,
                     Origin = Anchor.CentreLeft,
-                    DisplayUnrankedText = false,
                     ExpansionMode = ExpansionMode.AlwaysExpanded,
                     Scale = new Vector2(0.5f),
                     Current = { Value = score.Mods }
@@ -257,7 +256,7 @@ namespace osu.Game.Screens.Ranking.Expanded
             // Score counter value setting must be scheduled so it isn't transferred instantaneously
             ScheduleAfterChildren(() =>
             {
-                using (BeginDelayedSequence(AccuracyCircle.ACCURACY_TRANSFORM_DELAY, true))
+                using (BeginDelayedSequence(AccuracyCircle.ACCURACY_TRANSFORM_DELAY))
                 {
                     scoreCounter.FadeIn();
                     scoreCounter.Current = scoreManager.GetBindableTotalScore(score);
@@ -266,7 +265,7 @@ namespace osu.Game.Screens.Ranking.Expanded
 
                     foreach (var stat in statisticDisplays)
                     {
-                        using (BeginDelayedSequence(delay, true))
+                        using (BeginDelayedSequence(delay))
                             stat.Appear();
 
                         delay += 200;

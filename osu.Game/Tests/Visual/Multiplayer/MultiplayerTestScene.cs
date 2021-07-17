@@ -2,53 +2,66 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using NUnit.Framework;
-using osu.Framework.Allocation;
-using osu.Framework.Bindables;
-using osu.Framework.Graphics;
-using osu.Framework.Graphics.Containers;
-using osu.Game.Online.Multiplayer;
-using osu.Game.Screens.OnlinePlay;
-using osu.Game.Screens.OnlinePlay.Lounge.Components;
+using osu.Game.Online.Rooms;
+using osu.Game.Tests.Beatmaps;
+using osu.Game.Tests.Visual.OnlinePlay;
+using osu.Game.Tests.Visual.Spectator;
 
 namespace osu.Game.Tests.Visual.Multiplayer
 {
-    public abstract class MultiplayerTestScene : RoomTestScene
+    /// <summary>
+    /// The base test scene for all multiplayer components and screens.
+    /// </summary>
+    public abstract class MultiplayerTestScene : OnlinePlayTestScene, IMultiplayerTestSceneDependencies
     {
-        [Cached(typeof(StatefulMultiplayerClient))]
-        public TestMultiplayerClient Client { get; }
+        public const int PLAYER_1_ID = 55;
+        public const int PLAYER_2_ID = 56;
 
-        [Cached(typeof(IRoomManager))]
-        public TestMultiplayerRoomManager RoomManager { get; }
+        public TestMultiplayerClient Client => OnlinePlayDependencies.Client;
+        public new TestMultiplayerRoomManager RoomManager => OnlinePlayDependencies.RoomManager;
+        public TestUserLookupCache LookupCache => OnlinePlayDependencies?.LookupCache;
+        public TestSpectatorClient SpectatorClient => OnlinePlayDependencies?.SpectatorClient;
 
-        [Cached]
-        public Bindable<FilterCriteria> Filter { get; }
-
-        [Cached]
-        public OngoingOperationTracker OngoingOperationTracker { get; }
-
-        protected override Container<Drawable> Content => content;
-        private readonly TestMultiplayerRoomContainer content;
+        protected new MultiplayerTestSceneDependencies OnlinePlayDependencies => (MultiplayerTestSceneDependencies)base.OnlinePlayDependencies;
 
         private readonly bool joinRoom;
 
         protected MultiplayerTestScene(bool joinRoom = true)
         {
             this.joinRoom = joinRoom;
-            base.Content.Add(content = new TestMultiplayerRoomContainer { RelativeSizeAxes = Axes.Both });
-
-            Client = content.Client;
-            RoomManager = content.RoomManager;
-            Filter = content.Filter;
-            OngoingOperationTracker = content.OngoingOperationTracker;
         }
 
         [SetUp]
         public new void Setup() => Schedule(() =>
         {
-            RoomManager.Schedule(() => RoomManager.PartRoom());
+            if (joinRoom)
+            {
+                var room = new Room
+                {
+                    Name = { Value = "test name" },
+                    Playlist =
+                    {
+                        new PlaylistItem
+                        {
+                            Beatmap = { Value = new TestBeatmap(Ruleset.Value).BeatmapInfo },
+                            Ruleset = { Value = Ruleset.Value }
+                        }
+                    }
+                };
+
+                RoomManager.CreateRoom(room);
+                SelectedRoom.Value = room;
+            }
+        });
+
+        public override void SetUpSteps()
+        {
+            base.SetUpSteps();
 
             if (joinRoom)
-                RoomManager.Schedule(() => RoomManager.CreateRoom(Room));
-        });
+                AddUntilStep("wait for room join", () => Client.Room != null);
+        }
+
+        protected override OnlinePlayTestSceneDependencies CreateOnlinePlayDependencies() => new MultiplayerTestSceneDependencies();
     }
 }

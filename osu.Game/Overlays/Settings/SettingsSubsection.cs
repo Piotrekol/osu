@@ -8,20 +8,23 @@ using osu.Game.Graphics.Sprites;
 using System.Collections.Generic;
 using System.Linq;
 using osu.Framework.Allocation;
+using osu.Framework.Localisation;
+using osu.Framework.Testing;
 using osu.Game.Graphics;
 
 namespace osu.Game.Overlays.Settings
 {
+    [ExcludeFromDynamicCompile]
     public abstract class SettingsSubsection : FillFlowContainer, IHasFilterableChildren
     {
         protected override Container<Drawable> Content => FlowContent;
 
         protected readonly FillFlowContainer FlowContent;
 
-        protected abstract string Header { get; }
+        protected abstract LocalisableString Header { get; }
 
         public IEnumerable<IFilterable> FilterableChildren => Children.OfType<IFilterable>();
-        public virtual IEnumerable<string> FilterTerms => new[] { Header };
+        public virtual IEnumerable<string> FilterTerms => new[] { Header.ToString() };
 
         public bool MatchingFilter
         {
@@ -52,7 +55,7 @@ namespace osu.Game.Overlays.Settings
             {
                 new OsuSpriteText
                 {
-                    Text = Header.ToUpperInvariant(),
+                    Text = Header.ToString().ToUpper(), // TODO: Add localisation support after https://github.com/ppy/osu-framework/pull/4603 is merged.
                     Margin = new MarginPadding { Vertical = 30, Left = SettingsPanel.CONTENT_MARGINS, Right = SettingsPanel.CONTENT_MARGINS },
                     Font = OsuFont.GetFont(weight: FontWeight.Bold),
                 },
