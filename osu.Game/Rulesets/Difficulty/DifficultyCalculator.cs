@@ -45,7 +45,7 @@ namespace osu.Game.Rulesets.Difficulty
         public IEnumerable<TimedDifficultyAttributes> CalculateTimed(CancellationToken cancellationToken,
             params Mod[] mods)
         {
-            mods = mods.Select(m => m.CreateCopy()).ToArray();
+            mods = mods.Select(m => m.DeepClone()).ToArray();
 
             IBeatmap playableBeatmap = beatmap.GetPlayableBeatmap(ruleset.RulesetInfo, mods);
 
