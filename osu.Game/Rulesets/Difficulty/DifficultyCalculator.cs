@@ -91,7 +91,6 @@ namespace osu.Game.Rulesets.Difficulty
             double startSectionEnd = currentSectionEnd - sectionLength;
             yield return lastTimedAttributes = new TimedDifficultyAttributes(startSectionEnd, CreateDifficultyAttributes(beatmap, mods, skills, clockRate, startSectionEnd));
 
-
             foreach (var hitObject in difficultyHitObjects)
             {
                 foreach (var skill in skills)
@@ -106,7 +105,7 @@ namespace osu.Game.Rulesets.Difficulty
                     yield return lastTimedAttributes = timedAttributes;
                 }
 
-                currentSectionEnd += sectionLength;
+                currentSectionEnd += hitObject.DeltaTime;
 
                 cancellationToken.ThrowIfCancellationRequested();
             }
