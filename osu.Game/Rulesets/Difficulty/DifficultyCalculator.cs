@@ -89,7 +89,7 @@ namespace osu.Game.Rulesets.Difficulty
 
             //Generate strain for start section of beatmap
             double startSectionEnd = currentSectionEnd - sectionLength;
-            yield return lastTimedAttributes = new TimedDifficultyAttributes(startSectionEnd, CreateDifficultyAttributes(beatmap, mods, skills, clockRate, startSectionEnd));
+            yield return lastTimedAttributes = new TimedDifficultyAttributes(startSectionEnd * clockRate, CreateDifficultyAttributes(beatmap, mods, skills, clockRate, startSectionEnd * clockRate));
 
             foreach (var hitObject in difficultyHitObjects)
             {
@@ -98,7 +98,7 @@ namespace osu.Game.Rulesets.Difficulty
                     skill.ProcessInternal(hitObject);
                 }
 
-                var timedAttributes = new TimedDifficultyAttributes(currentSectionEnd, CreateDifficultyAttributes(beatmap, mods, skills, clockRate, currentSectionEnd));
+                var timedAttributes = new TimedDifficultyAttributes(hitObject.EndTime * clockRate, CreateDifficultyAttributes(beatmap, mods, skills, clockRate, hitObject.EndTime * clockRate));
                 //Don't generate same attributes more than once in a row(breaks, sliders with spaced ticks)
                 if (timedAttributes.Attributes.CompareTo(lastTimedAttributes.Attributes) != 0)
                 {
@@ -110,7 +110,7 @@ namespace osu.Game.Rulesets.Difficulty
                 cancellationToken.ThrowIfCancellationRequested();
             }
 
-            yield return new TimedDifficultyAttributes(currentSectionEnd, CreateDifficultyAttributes(beatmap, mods, skills, clockRate));
+            yield return new TimedDifficultyAttributes(currentSectionEnd * clockRate, CreateDifficultyAttributes(beatmap, mods, skills, clockRate));
         }
 
         /// <summary>
