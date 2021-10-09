@@ -60,7 +60,7 @@ namespace osu.Game.Beatmaps.Formats
                 {
                     ParseLine(output, section, line);
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     //Logger.Log($"Failed to process line \"{line}\" into \"{output}\": {e.Message}", LoggingTarget.Runtime, LogLevel.Important);
                 }
