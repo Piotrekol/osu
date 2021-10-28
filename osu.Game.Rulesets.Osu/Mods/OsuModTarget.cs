@@ -4,8 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using osu.Framework.Allocation;
-using osu.Framework.Audio.Track;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Sprites;
@@ -16,7 +14,6 @@ using osu.Game.Beatmaps.ControlPoints;
 using osu.Game.Beatmaps.Timing;
 using osu.Game.Configuration;
 using osu.Game.Graphics;
-using osu.Game.Graphics.Containers;
 using osu.Game.Overlays.Settings;
 using osu.Game.Rulesets.Mods;
 using osu.Game.Rulesets.Objects;
@@ -29,7 +26,6 @@ using osu.Game.Rulesets.Osu.UI;
 using osu.Game.Rulesets.Osu.Utils;
 using osu.Game.Rulesets.Scoring;
 using osu.Game.Rulesets.UI;
-using osu.Game.Skinning;
 using osuTK;
 using osuTK.Graphics;
 
@@ -66,11 +62,6 @@ namespace osu.Game.Rulesets.Osu.Mods
         /// The maximum allowed jump distance after multipliers are applied
         /// </summary>
         private const float distance_cap = 380f;
-
-        // The distances from the hit objects to the borders of the playfield they start to "turn around" and curve towards the middle.
-        // The closer the hit objects draw to the border, the sharper the turn
-        private const byte border_distance_x = 192;
-        private const byte border_distance_y = 144;
 
         /// <summary>
         /// The extent of rotation towards playfield centre when a circle is near the edge
@@ -122,7 +113,7 @@ namespace osu.Game.Rulesets.Osu.Mods
 
         #region Reduce AR (IApplicableToDifficulty)
 
-        public void ReadFromDifficulty(BeatmapDifficulty difficulty)
+        public void ReadFromDifficulty(IBeatmapDifficultyInfo difficulty)
         {
         }
 
@@ -184,7 +175,7 @@ namespace osu.Game.Rulesets.Osu.Mods
                              .Select(beat =>
                              {
                                  var newCircle = new HitCircle();
-                                 newCircle.ApplyDefaults(controlPointInfo, osuBeatmap.BeatmapInfo.BaseDifficulty);
+                                 newCircle.ApplyDefaults(controlPointInfo, osuBeatmap.Difficulty);
                                  newCircle.StartTime = beat;
                                  return (OsuHitObject)newCircle;
                              }).ToList();
@@ -202,8 +193,8 @@ namespace osu.Game.Rulesets.Osu.Mods
 
         private IEnumerable<double> generateBeats(IBeatmap beatmap)
         {
-            var startTime = originalHitObjects.First().StartTime;
-            var endTime = originalHitObjects.Last().GetEndTime();
+            double startTime = originalHitObjects.First().StartTime;
+            double endTime = originalHitObjects.Last().GetEndTime();
 
             var beats = beatmap.ControlPointInfo.TimingPoints
                                // Ignore timing points after endTime
@@ -217,9 +208,9 @@ namespace osu.Game.Rulesets.Osu.Mods
                                .ToList();
 
             // Remove beats that are too close to the next one (e.g. due to timing point changes)
-            for (var i = beats.Count - 2; i >= 0; i--)
+            for (int i = beats.Count - 2; i >= 0; i--)
             {
-                var beat = beats[i];
+                double beat = beats[i];
 
                 if (!definitelyBigger(beats[i + 1] - beat, beatmap.ControlPointInfo.TimingPointAt(beat).BeatLength / 2))
                     beats.RemoveAt(i);
@@ -259,13 +250,13 @@ namespace osu.Game.Rulesets.Osu.Mods
             // Other kinds of combo info are also added in the process
             var combos = hitObjects.GroupBy(x => x.ComboIndex).ToList();
 
-            for (var i = 0; i < combos.Count; i++)
+            for (int i = 0; i < combos.Count; i++)
             {
                 var group = combos[i].ToList();
                 group.First().NewCombo = true;
                 group.Last().LastInCombo = true;
 
-                for (var j = 0; j < group.Count; j++)
+                for (int j = 0; j < group.Count; j++)
                 {
                     var x = group[j];
                     x.ComboIndex = i;
@@ -282,17 +273,17 @@ namespace osu.Game.Rulesets.Osu.Mods
 
             const float two_pi = MathF.PI * 2;
 
-            var direction = two_pi * nextSingle();
-            var maxComboIndex = hitObjects.Last().ComboIndex;
+            float direction = two_pi * nextSingle();
+            int maxComboIndex = hitObjects.Last().ComboIndex;
 
-            for (var i = 0; i < hitObjects.Count; i++)
+            for (int i = 0; i < hitObjects.Count; i++)
             {
                 var obj = hitObjects[i];
                 var lastPos = i == 0
                     ? Vector2.Divide(OsuPlayfield.BASE_SIZE, 2)
                     : hitObjects[i - 1].Position;
 
-                var distance = maxComboIndex == 0
+                float distance = maxComboIndex == 0
                     ? (float)obj.Radius
                     : mapRange(obj.ComboIndex, 0, maxComboIndex, (float)obj.Radius, max_base_distance);
                 if (obj.NewCombo) distance *= 1.5f;
@@ -301,7 +292,7 @@ namespace osu.Game.Rulesets.Osu.Mods
 
                 // Attempt to place the circle at a place that does not overlap with previous ones
 
-                var tryCount = 0;
+                int tryCount = 0;
 
                 // for checking overlap
                 var precedingObjects = hitObjects.SkipLast(hitObjects.Count - i).TakeLast(overlap_check_count).ToList();
@@ -341,46 +332,7 @@ namespace osu.Game.Rulesets.Osu.Mods
 
         public void ApplyToDrawableRuleset(DrawableRuleset<OsuHitObject> drawableRuleset)
         {
-            drawableRuleset.Overlays.Add(new TargetBeatContainer(drawableRuleset.Beatmap.HitObjects.First().StartTime));
-        }
-
-        public class TargetBeatContainer : BeatSyncedContainer
-        {
-            private readonly double firstHitTime;
-
-            private PausableSkinnableSound sample;
-
-            public TargetBeatContainer(double firstHitTime)
-            {
-                this.firstHitTime = firstHitTime;
-                AllowMistimedEventFiring = false;
-                Divisor = 1;
-            }
-
-            [BackgroundDependencyLoader]
-            private void load()
-            {
-                InternalChildren = new Drawable[]
-                {
-                    sample = new PausableSkinnableSound(new SampleInfo("Gameplay/catch-banana"))
-                };
-            }
-
-            protected override void OnNewBeat(int beatIndex, TimingControlPoint timingPoint, EffectControlPoint effectPoint, ChannelAmplitudes amplitudes)
-            {
-                base.OnNewBeat(beatIndex, timingPoint, effectPoint, amplitudes);
-
-                if (!IsBeatSyncedWithTrack) return;
-
-                int timeSignature = (int)timingPoint.TimeSignature;
-
-                // play metronome from one measure before the first object.
-                if (BeatSyncClock.CurrentTime < firstHitTime - timingPoint.BeatLength * timeSignature)
-                    return;
-
-                sample.Frequency.Value = beatIndex % timeSignature == 0 ? 1 : 0.5f;
-                sample.Play();
-            }
+            drawableRuleset.Overlays.Add(new Metronome(drawableRuleset.Beatmap.HitObjects.First().StartTime));
         }
 
         #endregion
@@ -411,7 +363,7 @@ namespace osu.Game.Rulesets.Osu.Mods
         {
             var beats = new List<double>();
             int i = 0;
-            var currentTime = timingPoint.Time;
+            double currentTime = timingPoint.Time;
 
             while (!definitelyBigger(currentTime, mapEndTime) && controlPointInfo.TimingPointAt(currentTime) == timingPoint)
             {
@@ -425,7 +377,7 @@ namespace osu.Game.Rulesets.Osu.Mods
 
         private OsuHitObject getClosestHitObject(List<OsuHitObject> hitObjects, double time)
         {
-            var precedingIndex = hitObjects.FindLastIndex(h => h.StartTime < time);
+            int precedingIndex = hitObjects.FindLastIndex(h => h.StartTime < time);
 
             if (precedingIndex == hitObjects.Count - 1) return hitObjects[precedingIndex];
 
@@ -505,7 +457,7 @@ namespace osu.Game.Rulesets.Osu.Mods
         private void clampToPlayfield(OsuHitObject obj)
         {
             var position = obj.Position;
-            var radius = (float)obj.Radius;
+            float radius = (float)obj.Radius;
 
             if (position.Y < radius)
                 position.Y = radius;

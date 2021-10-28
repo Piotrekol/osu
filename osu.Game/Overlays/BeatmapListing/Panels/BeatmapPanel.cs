@@ -50,6 +50,7 @@ namespace osu.Game.Overlays.BeatmapListing.Panels
         protected Action ViewBeatmap;
 
         protected BeatmapPanel(BeatmapSetInfo setInfo)
+            : base(HoverSampleSet.Submit)
         {
             Debug.Assert(setInfo.OnlineBeatmapSetID != null);
 
@@ -159,10 +160,10 @@ namespace osu.Game.Overlays.BeatmapListing.Panels
             return icons;
         }
 
-        protected Drawable CreateBackground() => new UpdateableBeatmapSetCover
+        protected Drawable CreateBackground() => new UpdateableOnlineBeatmapSetCover
         {
             RelativeSizeAxes = Axes.Both,
-            BeatmapSet = SetInfo,
+            OnlineInfo = SetInfo.OnlineInfo,
         };
 
         public class Statistic : FillFlowContainer

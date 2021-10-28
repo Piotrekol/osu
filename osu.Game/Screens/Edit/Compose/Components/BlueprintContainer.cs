@@ -58,13 +58,13 @@ namespace osu.Game.Screens.Edit.Compose.Components
                 switch (args.Action)
                 {
                     case NotifyCollectionChangedAction.Add:
-                        foreach (var o in args.NewItems)
+                        foreach (object o in args.NewItems)
                             SelectionBlueprints.FirstOrDefault(b => b.Item == o)?.Select();
 
                         break;
 
                     case NotifyCollectionChangedAction.Remove:
-                        foreach (var o in args.OldItems)
+                        foreach (object o in args.OldItems)
                             SelectionBlueprints.FirstOrDefault(b => b.Item == o)?.Deselect();
 
                         break;
@@ -228,9 +228,9 @@ namespace osu.Game.Screens.Edit.Compose.Components
             return false;
         }
 
-        public bool OnPressed(PlatformAction action)
+        public bool OnPressed(KeyBindingPressEvent<PlatformAction> e)
         {
-            switch (action)
+            switch (e.Action)
             {
                 case PlatformAction.SelectAll:
                     SelectAll();
@@ -240,7 +240,7 @@ namespace osu.Game.Screens.Edit.Compose.Components
             return false;
         }
 
-        public void OnReleased(PlatformAction action)
+        public void OnReleased(KeyBindingReleaseEvent<PlatformAction> e)
         {
         }
 
@@ -468,7 +468,7 @@ namespace osu.Game.Screens.Edit.Compose.Components
             if (snapProvider != null)
             {
                 // check for positional snap for every object in selection (for things like object-object snapping)
-                for (var i = 0; i < movementBlueprintOriginalPositions.Length; i++)
+                for (int i = 0; i < movementBlueprintOriginalPositions.Length; i++)
                 {
                     Vector2 originalPosition = movementBlueprintOriginalPositions[i];
                     var testPosition = originalPosition + distanceTravelled;

@@ -57,7 +57,7 @@ namespace osu.Game.Tests.Visual.Gameplay
         {
             showOverlay();
 
-            var retryCount = 0;
+            int retryCount = 0;
 
             AddRepeatStep("Add retry", () =>
             {
@@ -228,7 +228,7 @@ namespace osu.Game.Tests.Visual.Gameplay
                 var lastAction = pauseOverlay.OnRetry;
                 pauseOverlay.OnRetry = () => triggered = true;
 
-                getButton(1).Click();
+                getButton(1).TriggerClick();
                 pauseOverlay.OnRetry = lastAction;
             });
 

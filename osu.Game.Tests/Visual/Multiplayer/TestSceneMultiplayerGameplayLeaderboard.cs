@@ -8,10 +8,10 @@ using NUnit.Framework;
 using osu.Framework.Allocation;
 using osu.Framework.Extensions.ObjectExtensions;
 using osu.Framework.Graphics;
-using osu.Framework.Testing;
 using osu.Framework.Utils;
 using osu.Game.Configuration;
 using osu.Game.Online.API;
+using osu.Game.Online.Multiplayer;
 using osu.Game.Online.Spectator;
 using osu.Game.Replays.Legacy;
 using osu.Game.Rulesets.Osu.Scoring;
@@ -20,6 +20,7 @@ using osu.Game.Scoring;
 using osu.Game.Screens.Play.HUD;
 using osu.Game.Tests.Visual.OnlinePlay;
 using osu.Game.Tests.Visual.Spectator;
+using osu.Game.Users;
 
 namespace osu.Game.Tests.Visual.Multiplayer
 {
@@ -38,9 +39,10 @@ namespace osu.Game.Tests.Visual.Multiplayer
             Dependencies.Cache(config = new OsuConfigManager(LocalStorage));
         }
 
-        [SetUpSteps]
         public override void SetUpSteps()
         {
+            base.SetUpSteps();
+
             AddStep("set local user", () => ((DummyAPIAccess)API).LocalUser.Value = LookupCache.GetUserAsync(1).Result);
 
             AddStep("create leaderboard", () =>
@@ -50,22 +52,23 @@ namespace osu.Game.Tests.Visual.Multiplayer
                 OsuScoreProcessor scoreProcessor;
                 Beatmap.Value = CreateWorkingBeatmap(Ruleset.Value);
 
-                var playable = Beatmap.Value.GetPlayableBeatmap(Ruleset.Value);
+                var playableBeatmap = Beatmap.Value.GetPlayableBeatmap(Ruleset.Value);
+                var multiplayerUsers = new List<MultiplayerRoomUser>();
 
-                foreach (var user in users)
+                foreach (int user in users)
+                {
                     SpectatorClient.StartPlay(user, Beatmap.Value.BeatmapInfo.OnlineBeatmapID ?? 0);
-
-                // Todo: This is REALLY bad.
-                Client.CurrentMatchPlayingUserIds.AddRange(users);
+                    multiplayerUsers.Add(OnlinePlayDependencies.Client.AddUser(new User { Id = user }, true));
+                }
 
                 Children = new Drawable[]
                 {
                     scoreProcessor = new OsuScoreProcessor(),
                 };
 
-                scoreProcessor.ApplyBeatmap(playable);
+                scoreProcessor.ApplyBeatmap(playableBeatmap);
 
-                LoadComponentAsync(leaderboard = new MultiplayerGameplayLeaderboard(scoreProcessor, users.ToArray())
+                LoadComponentAsync(leaderboard = new MultiplayerGameplayLeaderboard(scoreProcessor, multiplayerUsers.ToArray())
                 {
                     Anchor = Anchor.Centre,
                     Origin = Anchor.Centre,
@@ -86,7 +89,7 @@ namespace osu.Game.Tests.Visual.Multiplayer
         [Test]
         public void TestUserQuit()
         {
-            foreach (var user in users)
+            foreach (int user in users)
                 AddStep($"mark user {user} quit", () => Client.RemoveUser(LookupCache.GetUserAsync(user).Result.AsNonNull()));
         }
 
@@ -111,7 +114,7 @@ namespace osu.Game.Tests.Visual.Multiplayer
 
             public void RandomlyUpdateState()
             {
-                foreach (var userId in PlayingUsers)
+                foreach (int userId in PlayingUsers)
                 {
                     if (RNG.NextBool())
                         continue;

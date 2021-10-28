@@ -1,6 +1,7 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+using osu.Framework.Extensions.LocalisationExtensions;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Game.Graphics;
@@ -52,7 +53,7 @@ namespace osu.Game.Overlays.Profile.Sections.Ranks
                 new OsuSpriteText
                 {
                     Font = OsuFont.GetFont(size: 12),
-                    Text = UsersStrings.ShowExtraTopRanksPpWeight(weight.ToString("0%"))
+                    Text = UsersStrings.ShowExtraTopRanksPpWeight(weight.ToLocalisableString("0%"))
                 }
             }
         };

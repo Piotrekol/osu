@@ -6,9 +6,11 @@ using System.Linq;
 using NUnit.Framework;
 using osu.Framework.Testing;
 using osu.Framework.Timing;
+using osu.Game.Online.Multiplayer;
 using osu.Game.Rulesets.Osu.Scoring;
 using osu.Game.Screens.OnlinePlay.Multiplayer.Spectate;
 using osu.Game.Screens.Play.HUD;
+using osu.Game.Users;
 
 namespace osu.Game.Tests.Visual.Multiplayer
 {
@@ -30,8 +32,11 @@ namespace osu.Game.Tests.Visual.Multiplayer
                     { PLAYER_2_ID, new ManualClock() }
                 };
 
-                foreach (var (userId, _) in clocks)
+                foreach ((int userId, var _) in clocks)
+                {
                     SpectatorClient.StartPlay(userId, 0);
+                    OnlinePlayDependencies.Client.AddUser(new User { Id = userId });
+                }
             });
 
             AddStep("create leaderboard", () =>
@@ -41,14 +46,14 @@ namespace osu.Game.Tests.Visual.Multiplayer
                 var scoreProcessor = new OsuScoreProcessor();
                 scoreProcessor.ApplyBeatmap(playable);
 
-                LoadComponentAsync(leaderboard = new MultiSpectatorLeaderboard(scoreProcessor, clocks.Keys.ToArray()) { Expanded = { Value = true } }, Add);
+                LoadComponentAsync(leaderboard = new MultiSpectatorLeaderboard(scoreProcessor, clocks.Keys.Select(id => new MultiplayerRoomUser(id)).ToArray()) { Expanded = { Value = true } }, Add);
             });
 
             AddUntilStep("wait for load", () => leaderboard.IsLoaded);
 
             AddStep("add clock sources", () =>
             {
-                foreach (var (userId, clock) in clocks)
+                foreach ((int userId, var clock) in clocks)
                     leaderboard.AddClock(userId, clock);
             });
         }

@@ -11,6 +11,7 @@ using osu.Game.Users;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using osu.Game.Online.API.Requests.Responses;
 
 namespace osu.Game.Tests.Visual.Online
 {
@@ -20,6 +21,8 @@ namespace osu.Game.Tests.Visual.Online
         private readonly TestBeatmapSetOverlay overlay;
 
         protected override bool UseOnlineAPI => true;
+
+        private int nextBeatmapSetId = 1;
 
         public TestSceneBeatmapSetOverlay()
         {
@@ -61,7 +64,7 @@ namespace osu.Game.Tests.Visual.Online
                             Id = 3,
                         },
                     },
-                    OnlineInfo = new BeatmapSetOnlineInfo
+                    OnlineInfo = new APIBeatmapSet
                     {
                         Preview = @"https://b.ppy.sh/preview/12345.mp3",
                         PlayCount = 123,
@@ -70,10 +73,10 @@ namespace osu.Game.Tests.Visual.Online
                         Ranked = DateTime.Now,
                         BPM = 111,
                         HasVideo = true,
+                        Ratings = Enumerable.Range(0, 11).ToArray(),
                         HasStoryboard = true,
                         Covers = new BeatmapSetOnlineCovers(),
                     },
-                    Metrics = new BeatmapSetMetrics { Ratings = Enumerable.Range(0, 11).ToArray() },
                     Beatmaps = new List<BeatmapInfo>
                     {
                         new BeatmapInfo
@@ -89,17 +92,17 @@ namespace osu.Game.Tests.Visual.Online
                                 OverallDifficulty = 4.5f,
                                 ApproachRate = 6,
                             },
-                            OnlineInfo = new BeatmapOnlineInfo
+                            OnlineInfo = new APIBeatmap
                             {
                                 CircleCount = 111,
                                 SliderCount = 12,
                                 PlayCount = 222,
                                 PassCount = 21,
-                            },
-                            Metrics = new BeatmapMetrics
-                            {
-                                Fails = Enumerable.Range(1, 100).Select(i => i % 12 - 6).ToArray(),
-                                Retries = Enumerable.Range(-2, 100).Select(i => i % 12 - 6).ToArray(),
+                                FailTimes = new APIFailTimes
+                                {
+                                    Fails = Enumerable.Range(1, 100).Select(i => i % 12 - 6).ToArray(),
+                                    Retries = Enumerable.Range(-2, 100).Select(i => i % 12 - 6).ToArray(),
+                                },
                             },
                         },
                     },
@@ -132,7 +135,7 @@ namespace osu.Game.Tests.Visual.Online
                             Id = 3,
                         },
                     },
-                    OnlineInfo = new BeatmapSetOnlineInfo
+                    OnlineInfo = new APIBeatmapSet
                     {
                         Availability = new BeatmapSetOnlineAvailability
                         {
@@ -150,8 +153,8 @@ namespace osu.Game.Tests.Visual.Online
                         Covers = new BeatmapSetOnlineCovers(),
                         Language = new BeatmapSetOnlineLanguage { Id = 3, Name = "English" },
                         Genre = new BeatmapSetOnlineGenre { Id = 4, Name = "Rock" },
+                        Ratings = Enumerable.Range(0, 11).ToArray(),
                     },
-                    Metrics = new BeatmapSetMetrics { Ratings = Enumerable.Range(0, 11).ToArray() },
                     Beatmaps = new List<BeatmapInfo>
                     {
                         new BeatmapInfo
@@ -167,17 +170,17 @@ namespace osu.Game.Tests.Visual.Online
                                 OverallDifficulty = 7,
                                 ApproachRate = 6,
                             },
-                            OnlineInfo = new BeatmapOnlineInfo
+                            OnlineInfo = new APIBeatmap
                             {
                                 CircleCount = 123,
                                 SliderCount = 45,
                                 PlayCount = 567,
                                 PassCount = 89,
-                            },
-                            Metrics = new BeatmapMetrics
-                            {
-                                Fails = Enumerable.Range(1, 100).Select(i => i % 12 - 6).ToArray(),
-                                Retries = Enumerable.Range(-2, 100).Select(i => i % 12 - 6).ToArray(),
+                                FailTimes = new APIFailTimes
+                                {
+                                    Fails = Enumerable.Range(1, 100).Select(i => i % 12 - 6).ToArray(),
+                                    Retries = Enumerable.Range(-2, 100).Select(i => i % 12 - 6).ToArray(),
+                                },
                             },
                         },
                     },
@@ -201,12 +204,14 @@ namespace osu.Game.Tests.Visual.Online
                         Version = ruleset.Name,
                         Ruleset = ruleset,
                         BaseDifficulty = new BeatmapDifficulty(),
-                        OnlineInfo = new BeatmapOnlineInfo(),
-                        Metrics = new BeatmapMetrics
+                        OnlineInfo = new APIBeatmap
                         {
-                            Fails = Enumerable.Range(1, 100).Select(i => i % 12 - 6).ToArray(),
-                            Retries = Enumerable.Range(-2, 100).Select(i => i % 12 - 6).ToArray(),
-                        },
+                            FailTimes = new APIFailTimes
+                            {
+                                Fails = Enumerable.Range(1, 100).Select(i => i % 12 - 6).ToArray(),
+                                Retries = Enumerable.Range(-2, 100).Select(i => i % 12 - 6).ToArray(),
+                            },
+                        }
                     });
                 }
 
@@ -222,16 +227,16 @@ namespace osu.Game.Tests.Visual.Online
                             Id = 3,
                         }
                     },
-                    OnlineInfo = new BeatmapSetOnlineInfo
+                    OnlineInfo = new APIBeatmapSet
                     {
                         Covers = new BeatmapSetOnlineCovers(),
+                        Ratings = Enumerable.Range(0, 11).ToArray(),
                     },
-                    Metrics = new BeatmapSetMetrics { Ratings = Enumerable.Range(0, 11).ToArray() },
                     Beatmaps = beatmaps
                 });
             });
 
-            AddAssert("shown beatmaps of current ruleset", () => overlay.Header.HeaderContent.Picker.Difficulties.All(b => b.Beatmap.Ruleset.Equals(overlay.Header.RulesetSelector.Current.Value)));
+            AddAssert("shown beatmaps of current ruleset", () => overlay.Header.HeaderContent.Picker.Difficulties.All(b => b.BeatmapInfo.Ruleset.Equals(overlay.Header.RulesetSelector.Current.Value)));
             AddAssert("left-most beatmap selected", () => overlay.Header.HeaderContent.Picker.Difficulties.First().State == BeatmapPicker.DifficultySelectorState.Selected);
         }
 
@@ -240,8 +245,19 @@ namespace osu.Game.Tests.Visual.Online
         {
             AddStep("show explicit map", () =>
             {
-                var beatmapSet = CreateBeatmap(Ruleset.Value).BeatmapInfo.BeatmapSet;
+                var beatmapSet = getBeatmapSet();
                 beatmapSet.OnlineInfo.HasExplicitContent = true;
+                overlay.ShowBeatmapSet(beatmapSet);
+            });
+        }
+
+        [Test]
+        public void TestFeaturedBeatmap()
+        {
+            AddStep("show featured map", () =>
+            {
+                var beatmapSet = getBeatmapSet();
+                beatmapSet.OnlineInfo.TrackId = 1;
                 overlay.ShowBeatmapSet(beatmapSet);
             });
         }
@@ -274,12 +290,14 @@ namespace osu.Game.Tests.Visual.Online
                     {
                         OverallDifficulty = 3.5f,
                     },
-                    OnlineInfo = new BeatmapOnlineInfo(),
-                    Metrics = new BeatmapMetrics
+                    OnlineInfo = new APIBeatmap
                     {
-                        Fails = Enumerable.Range(1, 100).Select(j => j % 12 - 6).ToArray(),
-                        Retries = Enumerable.Range(-2, 100).Select(j => j % 12 - 6).ToArray(),
-                    },
+                        FailTimes = new APIFailTimes
+                        {
+                            Fails = Enumerable.Range(1, 100).Select(j => j % 12 - 6).ToArray(),
+                            Retries = Enumerable.Range(-2, 100).Select(j => j % 12 - 6).ToArray(),
+                        },
+                    }
                 });
             }
 
@@ -296,16 +314,24 @@ namespace osu.Game.Tests.Visual.Online
                         Id = 3,
                     },
                 },
-                OnlineInfo = new BeatmapSetOnlineInfo
+                OnlineInfo = new APIBeatmapSet
                 {
                     Preview = @"https://b.ppy.sh/preview/123.mp3",
                     HasVideo = true,
                     HasStoryboard = true,
                     Covers = new BeatmapSetOnlineCovers(),
+                    Ratings = Enumerable.Range(0, 11).ToArray(),
                 },
-                Metrics = new BeatmapSetMetrics { Ratings = Enumerable.Range(0, 11).ToArray() },
                 Beatmaps = beatmaps,
             };
+        }
+
+        private BeatmapSetInfo getBeatmapSet()
+        {
+            var beatmapSet = CreateBeatmap(Ruleset.Value).BeatmapInfo.BeatmapSet;
+            // Make sure the overlay is reloaded (see `BeatmapSetInfo.Equals`).
+            beatmapSet.OnlineBeatmapSetID = nextBeatmapSetId++;
+            return beatmapSet;
         }
 
         private void downloadAssert(bool shown)

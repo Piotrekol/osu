@@ -10,11 +10,13 @@ namespace osu.Game.Rulesets.Osu.Difficulty
     {
         public double AimStrain { get; set; }
         public double SpeedStrain { get; set; }
+        public double FlashlightRating { get; set; }
         public double ApproachRate { get; set; }
         public double OverallDifficulty { get; set; }
+        public double DrainRate { get; set; }
         public int HitCircleCount { get; set; }
-        public int SpinnerCount { get; set; }
         public int SliderCount { get; set; }
+        public int SpinnerCount { get; set; }
 
         public override int CompareTo(DifficultyAttributes other)
         {
@@ -25,19 +27,19 @@ namespace osu.Game.Rulesets.Osu.Difficulty
 
         public int CompareTo(OsuDifficultyAttributes other)
         {
-            var difficultyAttributesComparison = base.CompareTo(other);
+            int difficultyAttributesComparison = base.CompareTo(other);
             if (difficultyAttributesComparison != 0) return difficultyAttributesComparison;
-            var aimStrainComparison = AimStrain.CompareTo(other.AimStrain);
+            int aimStrainComparison = AimStrain.CompareTo(other.AimStrain);
             if (aimStrainComparison != 0) return aimStrainComparison;
-            var speedStrainComparison = SpeedStrain.CompareTo(other.SpeedStrain);
+            int speedStrainComparison = SpeedStrain.CompareTo(other.SpeedStrain);
             if (speedStrainComparison != 0) return speedStrainComparison;
-            var approachRateComparison = ApproachRate.CompareTo(other.ApproachRate);
+            int approachRateComparison = ApproachRate.CompareTo(other.ApproachRate);
             if (approachRateComparison != 0) return approachRateComparison;
-            var overallDifficultyComparison = OverallDifficulty.CompareTo(other.OverallDifficulty);
+            int overallDifficultyComparison = OverallDifficulty.CompareTo(other.OverallDifficulty);
             if (overallDifficultyComparison != 0) return overallDifficultyComparison;
-            var hitCircleCountComparison = HitCircleCount.CompareTo(other.HitCircleCount);
+            int hitCircleCountComparison = HitCircleCount.CompareTo(other.HitCircleCount);
             if (hitCircleCountComparison != 0) return hitCircleCountComparison;
-            var spinnerCountComparison = SpinnerCount.CompareTo(other.SpinnerCount);
+            int spinnerCountComparison = SpinnerCount.CompareTo(other.SpinnerCount);
             if (spinnerCountComparison != 0) return spinnerCountComparison;
             return SliderCount.CompareTo(other.SliderCount);
         }

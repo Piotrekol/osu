@@ -1,12 +1,15 @@
-﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
+// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
+
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace osu.Game.Rulesets.Difficulty
 {
-    public class TimedDifficultyAttributes
+    /// <summary>
+    /// Wraps a <see cref="DifficultyAttributes"/> object and adds a time value for which the attribute is valid.
+    /// Output by DifficultyCalculator.CalculateTimed.
+    /// </summary>
+    public class TimedDifficultyAttributes : IComparable<TimedDifficultyAttributes>
     {
         public readonly double Time;
         public readonly DifficultyAttributes Attributes;
@@ -16,5 +19,7 @@ namespace osu.Game.Rulesets.Difficulty
             Time = time;
             Attributes = attributes;
         }
+
+        public int CompareTo(TimedDifficultyAttributes other) => Time.CompareTo(other.Time);
     }
 }

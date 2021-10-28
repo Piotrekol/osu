@@ -7,7 +7,7 @@ using osu.Framework.Allocation;
 using osu.Framework.Platform;
 using osu.Framework.Testing;
 using osu.Framework.Utils;
-using osu.Game.Beatmaps;
+using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Rulesets;
 using osu.Game.Tests.Visual;
 using osu.Game.Tournament.IO;
@@ -19,6 +19,8 @@ namespace osu.Game.Tournament.Tests
 {
     public abstract class TournamentTestScene : OsuTestScene
     {
+        private TournamentMatch match;
+
         [Cached]
         protected LadderInfo Ladder { get; private set; } = new LadderInfo();
 
@@ -33,17 +35,21 @@ namespace osu.Game.Tournament.Tests
         {
             Ladder.Ruleset.Value ??= rulesetStore.AvailableRulesets.First();
 
-            TournamentMatch match = CreateSampleMatch();
+            match = CreateSampleMatch();
 
             Ladder.Rounds.Add(match.Round.Value);
             Ladder.Matches.Add(match);
             Ladder.Teams.Add(match.Team1.Value);
             Ladder.Teams.Add(match.Team2.Value);
 
-            Ladder.CurrentMatch.Value = match;
-
             Ruleset.BindTo(Ladder.Ruleset);
             Dependencies.CacheAs(new StableInfo(storage));
+        }
+
+        [SetUpSteps]
+        public virtual void SetUpSteps()
+        {
+            AddStep("set current match", () => Ladder.CurrentMatch.Value = match);
         }
 
         public static TournamentMatch CreateSampleMatch() => new TournamentMatch
@@ -67,19 +73,19 @@ namespace osu.Game.Tournament.Tests
                             {
                                 new SeedingBeatmap
                                 {
-                                    BeatmapInfo = CreateSampleBeatmapInfo(),
+                                    Beatmap = CreateSampleBeatmap(),
                                     Score = 12345672,
                                     Seed = { Value = 24 },
                                 },
                                 new SeedingBeatmap
                                 {
-                                    BeatmapInfo = CreateSampleBeatmapInfo(),
+                                    Beatmap = CreateSampleBeatmap(),
                                     Score = 1234567,
                                     Seed = { Value = 12 },
                                 },
                                 new SeedingBeatmap
                                 {
-                                    BeatmapInfo = CreateSampleBeatmapInfo(),
+                                    Beatmap = CreateSampleBeatmap(),
                                     Score = 1234567,
                                     Seed = { Value = 16 },
                                 }
@@ -93,19 +99,19 @@ namespace osu.Game.Tournament.Tests
                             {
                                 new SeedingBeatmap
                                 {
-                                    BeatmapInfo = CreateSampleBeatmapInfo(),
+                                    Beatmap = CreateSampleBeatmap(),
                                     Score = 234567,
                                     Seed = { Value = 3 },
                                 },
                                 new SeedingBeatmap
                                 {
-                                    BeatmapInfo = CreateSampleBeatmapInfo(),
+                                    Beatmap = CreateSampleBeatmap(),
                                     Score = 234567,
                                     Seed = { Value = 6 },
                                 },
                                 new SeedingBeatmap
                                 {
-                                    BeatmapInfo = CreateSampleBeatmapInfo(),
+                                    Beatmap = CreateSampleBeatmap(),
                                     Score = 234567,
                                     Seed = { Value = 12 },
                                 }
@@ -145,8 +151,16 @@ namespace osu.Game.Tournament.Tests
             }
         };
 
-        public static BeatmapInfo CreateSampleBeatmapInfo() =>
-            new BeatmapInfo { Metadata = new BeatmapMetadata { Title = "Test Title", Artist = "Test Artist", ID = RNG.Next(0, 1000000) } };
+        public static APIBeatmap CreateSampleBeatmap() =>
+            new APIBeatmap
+            {
+                BeatmapSet = new APIBeatmapSet
+                {
+                    Title = "Test Title",
+                    Artist = "Test Artist",
+                },
+                OnlineID = RNG.Next(0, 1000000),
+            };
 
         protected override ITestSceneTestRunner CreateRunner() => new TournamentTestSceneTestRunner();
 

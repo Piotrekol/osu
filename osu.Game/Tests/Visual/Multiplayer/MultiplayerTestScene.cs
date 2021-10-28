@@ -18,7 +18,7 @@ namespace osu.Game.Tests.Visual.Multiplayer
         public const int PLAYER_2_ID = 56;
 
         public TestMultiplayerClient Client => OnlinePlayDependencies.Client;
-        public new TestRequestHandlingMultiplayerRoomManager RoomManager => OnlinePlayDependencies.RoomManager;
+        public new TestMultiplayerRoomManager RoomManager => OnlinePlayDependencies.RoomManager;
         public TestUserLookupCache LookupCache => OnlinePlayDependencies?.LookupCache;
         public TestSpectatorClient SpectatorClient => OnlinePlayDependencies?.SpectatorClient;
 
@@ -35,31 +35,34 @@ namespace osu.Game.Tests.Visual.Multiplayer
         public new void Setup() => Schedule(() =>
         {
             if (joinRoom)
-            {
-                var room = new Room
-                {
-                    Name = { Value = "test name" },
-                    Playlist =
-                    {
-                        new PlaylistItem
-                        {
-                            Beatmap = { Value = new TestBeatmap(Ruleset.Value).BeatmapInfo },
-                            Ruleset = { Value = Ruleset.Value }
-                        }
-                    }
-                };
-
-                RoomManager.CreateRoom(room);
-                SelectedRoom.Value = room;
-            }
+                SelectedRoom.Value = CreateRoom();
         });
+
+        protected virtual Room CreateRoom()
+        {
+            return new Room
+            {
+                Name = { Value = "test name" },
+                Playlist =
+                {
+                    new PlaylistItem
+                    {
+                        Beatmap = { Value = new TestBeatmap(Ruleset.Value).BeatmapInfo },
+                        Ruleset = { Value = Ruleset.Value }
+                    }
+                }
+            };
+        }
 
         public override void SetUpSteps()
         {
             base.SetUpSteps();
 
             if (joinRoom)
+            {
+                AddStep("join room", () => RoomManager.CreateRoom(SelectedRoom.Value));
                 AddUntilStep("wait for room join", () => Client.Room != null);
+            }
         }
 
         protected override OnlinePlayTestSceneDependencies CreateOnlinePlayDependencies() => new MultiplayerTestSceneDependencies();

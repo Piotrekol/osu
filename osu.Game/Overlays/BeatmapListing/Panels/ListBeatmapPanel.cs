@@ -27,7 +27,7 @@ namespace osu.Game.Overlays.BeatmapListing.Panels
         private const float vertical_padding = 5;
         private const float height = 70;
 
-        private FillFlowContainer statusContainer, titleContainer;
+        private FillFlowContainer statusContainer, titleContainer, artistContainer;
         protected BeatmapPanelDownloadButton DownloadButton;
         private PlayButton playButton;
         private Box progressBar;
@@ -112,10 +112,18 @@ namespace osu.Game.Overlays.BeatmapListing.Panels
                                                                 },
                                                             }
                                                         },
-                                                        new OsuSpriteText
+                                                        artistContainer = new FillFlowContainer
                                                         {
-                                                            Text = new RomanisableString(SetInfo.Metadata.ArtistUnicode, SetInfo.Metadata.Artist),
-                                                            Font = OsuFont.GetFont(weight: FontWeight.Bold, italics: true)
+                                                            AutoSizeAxes = Axes.Both,
+                                                            Direction = FillDirection.Horizontal,
+                                                            Children = new[]
+                                                            {
+                                                                new OsuSpriteText
+                                                                {
+                                                                    Text = new RomanisableString(SetInfo.Metadata.ArtistUnicode, SetInfo.Metadata.Artist),
+                                                                    Font = OsuFont.GetFont(weight: FontWeight.Bold, italics: true)
+                                                                },
+                                                            },
                                                         },
                                                     }
                                                 },
@@ -227,6 +235,16 @@ namespace osu.Game.Overlays.BeatmapListing.Panels
                 });
             }
 
+            if (SetInfo.OnlineInfo?.TrackId != null)
+            {
+                artistContainer.Add(new FeaturedArtistBeatmapPill
+                {
+                    Anchor = Anchor.CentreLeft,
+                    Origin = Anchor.CentreLeft,
+                    Margin = new MarginPadding { Left = 10f, Top = 2f },
+                });
+            }
+
             if (SetInfo.OnlineInfo?.HasVideo ?? false)
             {
                 statusContainer.Add(new IconPill(FontAwesome.Solid.Film) { IconSize = new Vector2(20) });
@@ -239,6 +257,7 @@ namespace osu.Game.Overlays.BeatmapListing.Panels
 
             statusContainer.Add(new BeatmapSetOnlineStatusPill
             {
+                AutoSizeAxes = Axes.Both,
                 TextSize = 12,
                 TextPadding = new MarginPadding { Horizontal = 10, Vertical = 4 },
                 Status = SetInfo.OnlineInfo?.Status ?? BeatmapSetOnlineStatus.None,

@@ -92,7 +92,7 @@ namespace osu.Game.Tests.Visual.SongSelect
         {
             AddStep("setup display", () =>
             {
-                var randomMods = Ruleset.Value.CreateInstance().GetAllMods().OrderBy(_ => RNG.Next()).Take(5).ToList();
+                var randomMods = Ruleset.Value.CreateInstance().CreateAllMods().OrderBy(_ => RNG.Next()).Take(5).ToList();
 
                 OsuLogo logo = new OsuLogo { Scale = new Vector2(0.15f) };
 
@@ -143,9 +143,9 @@ namespace osu.Game.Tests.Visual.SongSelect
             public override async Task<StarDifficulty> GetDifficultyAsync(BeatmapInfo beatmapInfo, RulesetInfo rulesetInfo = null, IEnumerable<Mod> mods = null, CancellationToken cancellationToken = default)
             {
                 if (blockCalculation)
-                    await calculationBlocker.Task;
+                    await calculationBlocker.Task.ConfigureAwait(false);
 
-                return await base.GetDifficultyAsync(beatmapInfo, rulesetInfo, mods, cancellationToken);
+                return await base.GetDifficultyAsync(beatmapInfo, rulesetInfo, mods, cancellationToken).ConfigureAwait(false);
             }
         }
     }
