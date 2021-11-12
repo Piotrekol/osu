@@ -238,7 +238,11 @@ namespace osu.Game.Stores
                         TitleUnicode = decoded.Metadata.TitleUnicode,
                         Artist = decoded.Metadata.Artist,
                         ArtistUnicode = decoded.Metadata.ArtistUnicode,
-                        Author = decoded.Metadata.AuthorString,
+                        Author =
+                        {
+                            OnlineID = decoded.Metadata.Author.Id,
+                            Username = decoded.Metadata.Author.Username
+                        },
                         Source = decoded.Metadata.Source,
                         Tags = decoded.Metadata.Tags,
                         PreviewTime = decoded.Metadata.PreviewTime,
@@ -249,7 +253,7 @@ namespace osu.Game.Stores
                     var beatmap = new RealmBeatmap(ruleset, difficulty, metadata)
                     {
                         Hash = hash,
-                        DifficultyName = decodedInfo.Version,
+                        DifficultyName = decodedInfo.DifficultyName,
                         OnlineID = decodedInfo.OnlineBeatmapID ?? -1,
                         AudioLeadIn = decodedInfo.AudioLeadIn,
                         StackLeniency = decodedInfo.StackLeniency,

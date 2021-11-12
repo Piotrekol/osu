@@ -9,6 +9,7 @@ using osu.Framework.Testing;
 using osu.Game.Beatmaps;
 using osu.Game.Online.API;
 using osu.Game.Online.API.Requests;
+using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Rulesets;
 using osu.Game.Rulesets.Catch;
 using osu.Game.Rulesets.Mania;
@@ -40,9 +41,9 @@ namespace osu.Game.Tests.Visual.SongSelect
 
             base.SetUpSteps();
 
-            User getUser(int? rulesetID)
+            APIUser getUser(int? rulesetID)
             {
-                return new User
+                return new APIUser
                 {
                     Username = @"Dummy",
                     Id = 1001,
@@ -187,8 +188,8 @@ namespace osu.Game.Tests.Visual.SongSelect
                     Metadata = metadata,
                     BaseDifficulty = new BeatmapDifficulty(),
                     Ruleset = ruleset,
-                    StarDifficulty = difficultyIndex + 1,
-                    Version = $"SR{difficultyIndex + 1}"
+                    StarRating = difficultyIndex + 1,
+                    DifficultyName = $"SR{difficultyIndex + 1}"
                 }).ToList()
             };
 
