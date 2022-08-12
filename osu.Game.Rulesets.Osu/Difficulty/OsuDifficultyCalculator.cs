@@ -126,7 +126,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty
             };
         }
 
-        protected override Mod[] DifficultyAdjustmentMods => new Mod[]
+        public override Mod[] DifficultyAdjustmentMods => new Mod[]
         {
             new OsuModDoubleTime(),
             new OsuModHalfTime(),

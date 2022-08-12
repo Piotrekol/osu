@@ -87,7 +87,7 @@ namespace osu.Game.Rulesets.Catch.Difficulty
             };
         }
 
-        protected override Mod[] DifficultyAdjustmentMods => new Mod[]
+        public override Mod[] DifficultyAdjustmentMods => new Mod[]
         {
             new CatchModDoubleTime(),
             new CatchModHalfTime(),

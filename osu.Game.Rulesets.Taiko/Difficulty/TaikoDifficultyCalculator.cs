@@ -40,7 +40,7 @@ namespace osu.Game.Rulesets.Taiko.Difficulty
             new Stamina(mods)
         };
 
-        protected override Mod[] DifficultyAdjustmentMods => new Mod[]
+        public override Mod[] DifficultyAdjustmentMods => new Mod[]
         {
             new TaikoModDoubleTime(),
             new TaikoModHalfTime(),

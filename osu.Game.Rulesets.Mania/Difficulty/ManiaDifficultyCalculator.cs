@@ -89,7 +89,7 @@ namespace osu.Game.Rulesets.Mania.Difficulty
             new Strain(mods, ((ManiaBeatmap)Beatmap).TotalColumns)
         };
 
-        protected override Mod[] DifficultyAdjustmentMods
+        public override Mod[] DifficultyAdjustmentMods
         {
             get
             {

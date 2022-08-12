@@ -107,6 +107,8 @@ namespace osu.Game.Rulesets.Difficulty
 
             var skills = CreateSkills(Beatmap, playableMods, clockRate);
             var progressiveBeatmap = new ProgressiveCalculationBeatmap(Beatmap);
+            //First hitobject is not a difficultyHitObject
+            progressiveBeatmap.HitObjects.Add(Beatmap.HitObjects[0]);
 
             foreach (var hitObject in getDifficultyHitObjects())
             {
@@ -251,7 +253,7 @@ namespace osu.Game.Rulesets.Difficulty
         /// <summary>
         /// Retrieves all <see cref="Mod"/>s which adjust the <see cref="Beatmaps.Beatmap"/> difficulty.
         /// </summary>
-        protected virtual Mod[] DifficultyAdjustmentMods => Array.Empty<Mod>();
+        public virtual Mod[] DifficultyAdjustmentMods => Array.Empty<Mod>();
 
         /// <summary>
         /// Creates <see cref="DifficultyAttributes"/> to describe beatmap's calculated difficulty.
