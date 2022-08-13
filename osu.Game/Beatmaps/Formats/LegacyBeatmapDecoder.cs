@@ -53,7 +53,7 @@ namespace osu.Game.Beatmaps.Formats
         {
             if (RulesetStore == null)
             {
-                Logger.Log($"A {nameof(RulesetStore)} was not provided via {nameof(Decoder)}.{nameof(RegisterDependencies)}; falling back to default {nameof(AssemblyRulesetStore)}.");
+                //Logger.Log($"A {nameof(RulesetStore)} was not provided via {nameof(Decoder)}.{nameof(RegisterDependencies)}; falling back to default {nameof(AssemblyRulesetStore)}.");
                 RulesetStore = new AssemblyRulesetStore();
             }
 
